@@ -34,20 +34,45 @@ tr = Dita2LLM(
     target_dir="translated",
 )
 
-segments, skeleton = tr.parse("sample_data/sample_topic.xml")
+segments, skeleton = tr.parse("sample_topic.xml")  # filename only
 
 # Normally the segments would be sent for translation
 tr.generate_dummy_translation(
-    "intermediate/sample_topic.en-US_segments.json",
-    "intermediate/sample_topic.translated.json",
+    "sample_topic.en-US_segments.json",
+    "sample_topic.translated.json",
 )
 
 # Merge translations back into the skeleton
-tr.integrate("intermediate/sample_topic.translated.json")
+tr.integrate("sample_topic.translated.json")
 
 # Validate the result
-report = tr.validate("sample_data/sample_topic.xml", tr._last_target_path)
+report = tr.validate("sample_topic.xml", tr._last_target_path)
 print("validation", "passed" if report.passed else "failed")
 ```
 
 For simple workflows you can translate the generated `*.minimal.xml` and call `integrate_from_simple_xml` to reconstruct the original document.
+
+## Working with absolute paths
+
+When `source_dir`, `intermediate_dir`, and `target_dir` are left unset you can
+provide explicit paths to all methods. Output locations can also be overridden:
+
+```python
+from dita_xml_parser import Dita2LLM
+
+tr = Dita2LLM()  # no base directories
+
+xml_path = "/data/topic/sample_topic.xml"
+segments_path = "/tmp/sample_topic.segs.json"
+skeleton_path = "/tmp/sample_topic.skel.xml"
+tr.parse(xml_path, skeleton_path=skeleton_path, segments_path=segments_path)
+
+translated_path = "/tmp/sample_topic.translated.json"
+tr.generate_dummy_translation(segments_path, translated_path)
+
+out_xml = "/tmp/sample_topic.translated.xml"
+tr.integrate(translated_path, skeleton_path=skeleton_path, output_path=out_xml)
+
+report = tr.validate(xml_path, out_xml)
+print("validation", "passed" if report.passed else "failed")
+```
