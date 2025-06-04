@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE concept PUBLIC "-//OASIS//DTD DITA Concept//EN" "concept.dtd">
+<concept id="simple_concept">
+  <title>Simple Concept</title>
+  <conbody>
+    <p>This concept references <xref href="complex_topic.xml">complex topic</xref>.</p>
+  </conbody>
+</concept>
