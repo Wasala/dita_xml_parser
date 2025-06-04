@@ -1,0 +1,38 @@
+[
+  {
+    "id": "fe181ef6da32",
+    "en-US": "Sample Title"
+  },
+  {
+    "id": "ed98232e4df5",
+    "en-US": "This is the <b>first</b> paragraph with <cmd data-dita-seg-id=\"8c22d5d2434a\">some command</cmd>."
+  },
+  {
+    "id": "8c22d5d2434a",
+    "en-US": "some command"
+  },
+  {
+    "id": "964b1009179d",
+    "en-US": "This is the <i>second</i> paragraph."
+  },
+  {
+    "id": "f69769c2f07b",
+    "en-US": "Section One Title"
+  },
+  {
+    "id": "60ebd880f5bc",
+    "en-US": "Text within the first section."
+  },
+  {
+    "id": "bc68ccc47ac0",
+    "en-US": "Figure Title (Not Translated)"
+  },
+  {
+    "id": "2cf5b031a062",
+    "en-US": "Final paragraph with a <xref href=\"other.dita\">cross-reference</xref>."
+  },
+  {
+    "id": "6aab6e9de9fe",
+    "en-US": "Text with <ph>placeholders</ph> and <sub>subscript</sub>."
+  }
+]

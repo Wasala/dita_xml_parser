@@ -1,0 +1,17 @@
+<t1>
+  <t2_fe181ef6da32 data-dita-seg-id="fe181ef6da32">Sample Title</t2_fe181ef6da32>
+  <t3>
+    <t4_ed98232e4df5 data-dita-seg-id="ed98232e4df5">This is the <t5>first</t5> paragraph with <t6_8c22d5d2434a data-dita-seg-id="8c22d5d2434a">some command</t6_8c22d5d2434a>.</t4_ed98232e4df5>
+    <t7_964b1009179d data-dita-seg-id="964b1009179d">This is the <t8>second</t8> paragraph.</t7_964b1009179d>
+    <t9>
+      <t10_f69769c2f07b data-dita-seg-id="f69769c2f07b">Section One Title</t10_f69769c2f07b>
+      <t11_60ebd880f5bc data-dita-seg-id="60ebd880f5bc">Text within the first section.</t11_60ebd880f5bc>
+    </t9>
+    <t12>
+      <t13_bc68ccc47ac0 data-dita-seg-id="bc68ccc47ac0">Figure Title (Not Translated)</t13_bc68ccc47ac0>
+      <t14/>
+    </t12>
+    <t15_2cf5b031a062 data-dita-seg-id="2cf5b031a062">Final paragraph with a <t16>cross-reference</t16>.</t15_2cf5b031a062>
+    <t17_6aab6e9de9fe data-dita-seg-id="6aab6e9de9fe">Text with <t18>placeholders</t18> and <t19>subscript</t19>.</t17_6aab6e9de9fe>
+  </t3>
+</t1>
