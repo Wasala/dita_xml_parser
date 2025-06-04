@@ -82,10 +82,20 @@ def test_write_minimal_creates_placeholders(tmp_path):
     tr = make_transformer(tmp_path)
     tr.parse(SAMPLE_XML)
     minimal_path = tmp_path / 'intermediate' / 'sample_topic.minimal.xml'
+    mapping_path = tmp_path / 'intermediate' / 'sample_topic.tag_mappings.txt'
     with open(minimal_path, 'r', encoding='utf-8') as f:
         content = f.read()
     assert '<t1>' in content
     assert '_data-dita-seg-id' not in content  # tags replaced but attribute kept
+    # ensure same placeholder used for all <p> elements
+    mappings = {}
+    with open(mapping_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            ph, tag = line.strip().split(' -> ')
+            mappings[tag] = ph
+    p_placeholder = mappings.get('p')
+    assert p_placeholder is not None
+    assert content.count(f'<{p_placeholder}_') >= 4  # multiple <p> tags share placeholder
 
 
 def test_has_inline_child_false(tmp_path):
