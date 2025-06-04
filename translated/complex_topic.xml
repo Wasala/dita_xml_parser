@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="complex_topic">
+  <title>[de-DE_1] Complex Topic</title>
+  <body>
+    <p>[de-DE_2] Beginning text
+      <ul>
+        <li>[de-DE_3] Item 0</li>
+        <li>[de-DE_4] Item <i>1</i></li>
+      </ul>
+      some mid text <i>inline</i> element
+    </p>
+    <p>[de-DE_5] Paragraph with <b>bold <i>and italic</i></b> nested tags.</p>
+    <section id="sub1">
+      <title>[de-DE_6] Subsection</title>
+      <p>[de-DE_7] Subsection <u>underlined</u> text.</p>
+    </section>
+  </body>
+</topic>

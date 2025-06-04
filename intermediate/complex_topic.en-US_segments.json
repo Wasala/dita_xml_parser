@@ -1,0 +1,30 @@
+[
+  {
+    "id": "6e6c165ecc93",
+    "en-US": "Complex Topic"
+  },
+  {
+    "id": "a4d3b23ba576",
+    "en-US": "Beginning text\n      <ul>\n        <li data-dita-seg-id=\"afc6037db1e6\">Item 0</li>\n        <li data-dita-seg-id=\"dbcd1cd3b1e5\">Item <i>1</i></li>\n      </ul>\n      some mid text <i>inline</i> element\n    "
+  },
+  {
+    "id": "afc6037db1e6",
+    "en-US": "Item 0"
+  },
+  {
+    "id": "dbcd1cd3b1e5",
+    "en-US": "Item <i>1</i>"
+  },
+  {
+    "id": "f398abadc5e8",
+    "en-US": "Paragraph with <b>bold <i>and italic</i></b> nested tags."
+  },
+  {
+    "id": "33954ad8acd0",
+    "en-US": "Subsection"
+  },
+  {
+    "id": "4c7efe765b61",
+    "en-US": "Subsection <u>underlined</u> text."
+  }
+]

@@ -1,38 +1,38 @@
 [
   {
-    "id": "fe181ef6da32",
+    "id": "86d0e99be305",
     "en-US": "Sample Title"
   },
   {
-    "id": "ed98232e4df5",
-    "en-US": "This is the <b>first</b> paragraph with <cmd data-dita-seg-id=\"8c22d5d2434a\">some command</cmd>."
+    "id": "92aba6ef02dd",
+    "en-US": "This is the <b>first</b> paragraph with <cmd data-dita-seg-id=\"2c16d754cb56\">some command</cmd>."
   },
   {
-    "id": "8c22d5d2434a",
+    "id": "2c16d754cb56",
     "en-US": "some command"
   },
   {
-    "id": "964b1009179d",
+    "id": "7884a6425b06",
     "en-US": "This is the <i>second</i> paragraph."
   },
   {
-    "id": "f69769c2f07b",
+    "id": "60aec6136e1d",
     "en-US": "Section One Title"
   },
   {
-    "id": "60ebd880f5bc",
+    "id": "0c88283b52a5",
     "en-US": "Text within the first section."
   },
   {
-    "id": "bc68ccc47ac0",
+    "id": "8fdb42c6c1b5",
     "en-US": "Figure Title (Not Translated)"
   },
   {
-    "id": "2cf5b031a062",
+    "id": "07d4f43ec877",
     "en-US": "Final paragraph with a <xref href=\"other.dita\">cross-reference</xref>."
   },
   {
-    "id": "6aab6e9de9fe",
+    "id": "c3de9ea4d810",
     "en-US": "Text with <ph>placeholders</ph> and <sub>subscript</sub>."
   }
 ]

@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="complex_topic">
+  <title data-dita-seg-id="6e6c165ecc93">Complex Topic</title>
+  <body>
+    <p data-dita-seg-id="a4d3b23ba576">Beginning text
+      <ul>
+        <li data-dita-seg-id="afc6037db1e6">Item 0</li>
+        <li data-dita-seg-id="dbcd1cd3b1e5">Item <i>1</i></li>
+      </ul>
+      some mid text <i>inline</i> element
+    </p>
+    <p data-dita-seg-id="f398abadc5e8">Paragraph with <b>bold <i>and italic</i></b> nested tags.</p>
+    <section id="sub1">
+      <title data-dita-seg-id="33954ad8acd0">Subsection</title>
+      <p data-dita-seg-id="4c7efe765b61">Subsection <u>underlined</u> text.</p>
+    </section>
+  </body>
+</topic>

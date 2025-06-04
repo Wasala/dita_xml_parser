@@ -1,0 +1,17 @@
+<t1>
+  <t2_6e6c165ecc93>Complex Topic</t2_6e6c165ecc93>
+  <t3>
+    <t4_a4d3b23ba576>Beginning text
+      <t5>
+        <t6_afc6037db1e6>Item 0</t6_afc6037db1e6>
+        <t6_dbcd1cd3b1e5>Item <t7>1</t7></t6_dbcd1cd3b1e5>
+      </t5>
+      some mid text <t7>inline</t7> element
+    </t4_a4d3b23ba576>
+    <t4_f398abadc5e8>Paragraph with <t8>bold <t7>and italic</t7></t8> nested tags.</t4_f398abadc5e8>
+    <t9>
+      <t2_33954ad8acd0>Subsection</t2_33954ad8acd0>
+      <t4_4c7efe765b61>Subsection <t10>underlined</t10> text.</t4_4c7efe765b61>
+    </t9>
+  </t3>
+</t1>
