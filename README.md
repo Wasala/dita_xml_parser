@@ -1,6 +1,6 @@
 # DITA XML LLM Transformer
 
-This package provides a workflow for extracting translatable segments from DITA/XML files, generating minimal token versions for LLM translation, and reintegrating translated text.
+This package provides a workflow for extracting translatable segments from DITA/XML files, generating minimal token versions for LLM translation, and reintegrating translated text. Each XML tag is replaced by a stable placeholder so that the same element type always maps to the same token.
 
 ## Setup
 
