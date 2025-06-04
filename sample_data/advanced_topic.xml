@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="advanced-configuration-securesync">
+  <title>Advanced Configuration in SecureSync Pro</title>
+  <shortdesc>Explore detailed configuration settings of SecureSync Pro, including authentication, encryption, backups, and performance optimization.</shortdesc>
+
+  <body>
+    <section id="overview">
+      <title>System Overview</title>
+      <p>
+        SecureSync Pro is a <b>modular</b>, <i>secure</i>, and <u>highly configurable</u> synchronization platform 
+        for enterprise-level data integrity and backup. This guide provides advanced usage patterns 
+        and administrative tools configuration.
+      </p>
+    </section>
+
+    <section id="authentication">
+      <title>Authentication Mechanisms</title>
+      <p>Authentication types include:</p>
+      <table>
+        <title>Supported Authentication Mechanisms</title>
+        <tgroup cols="3">
+          <thead>
+            <row>
+              <entry><b>Method</b></entry>
+              <entry><b>Description</b></entry>
+              <entry><b>Config Element</b></entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry><i>Password</i></entry>
+              <entry>Basic login with <u>username</u> and <u>password</u>.</entry>
+              <entry><codeph>auth.basic.enabled=true</codeph></entry>
+            </row>
+            <row>
+              <entry><i>MFA</i></entry>
+              <entry>Requires a second factor such as a <b>mobile device</b>.</entry>
+              <entry><codeph>auth.mfa.required=true</codeph></entry>
+            </row>
+            <row>
+              <entry><i>OAuth2</i></entry>
+              <entry>Federated login through a <b>trusted identity provider</b>.</entry>
+              <entry><codeph>auth.oauth2.client_id</codeph></entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+    </section>
+
+    <section id="encryption">
+      <title>Encryption Overview</title>
+      <p>Encryption ensures that your data is protected both <i>at rest</i> and <i>in transit</i>.</p>
+      <fig>
+        <title>Encryption Flow Diagram</title>
+        <image href="images/encryption-flow.png" alt="Flowchart showing encryption at various stages"/>
+      </fig>
+      <p>
+        Example configuration snippet:
+      </p>
+      <codeblock>
+        encryption {
+            at_rest: AES-256
+            in_transit: TLSv1.3
+        }
+      </codeblock>
+    </section>
+
+    <section id="backup">
+      <title>Backup Configuration</title>
+      <p>
+        Use the <xref href="#scheduler">scheduler module</xref> to automate backups. Frequency can be defined using:
+      </p>
+      <table>
+        <title>Backup Schedule Examples</title>
+        <tgroup cols="2">
+          <thead>
+            <row>
+              <entry><b>Frequency</b></entry>
+              <entry><b>Cron Syntax</b></entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>Daily</entry>
+              <entry><codeph>0 2 * * *</codeph></entry>
+            </row>
+            <row>
+              <entry>Weekly</entry>
+              <entry><codeph>0 3 * * 0</codeph></entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+      <note type="tip">
+        Ensure that <b><codeph>backup.dir</codeph></b> is writable by the service user.
+      </note>
+    </section>
+
+    <section id="performance">
+      <title>Performance Tuning</title>
+      <p>
+        Adjust performance using the following parameters:
+      </p>
+      <ul>
+        <li><codeph>thread.pool.size</codeph>: Controls concurrency.</li>
+        <li><codeph>buffer.cache.limit</codeph>: Sets memory buffer limits.</li>
+      </ul>
+      <fig>
+        <title>Thread Pool Scaling Behavior</title>
+        <image href="images/thread-pool.png" alt="Graph showing thread pool scaling"/>
+      </fig>
+    </section>
+
+    <section id="logs">
+      <title>Log Files and Debugging</title>
+      <p>Common log files include:</p>
+      <ul>
+        <li><filepath>/var/log/securesync/system.log</filepath></li>
+        <li><filepath>/var/log/securesync/error.log</filepath></li>
+      </ul>
+      <note type="warning">
+        If you see repeated <u><b>"permission denied"</b></u> errors, check file ownership and disk quotas.
+      </note>
+    </section>
+
+    <section id="glossary">
+      <title>Glossary</title>
+      <dl>
+        <dlentry>
+          <dt><term>MFA</term></dt>
+          <dd>Multi-Factor Authentication, requiring more than one form of verification.</dd>
+        </dlentry>
+        <dlentry>
+          <dt><term>OAuth2</term></dt>
+          <dd>A standard protocol for authorization that enables token-based access.</dd>
+        </dlentry>
+      </dl>
+    </section>
+  </body>
+</topic>
