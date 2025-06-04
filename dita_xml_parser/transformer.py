@@ -3,18 +3,18 @@
 
 from __future__ import annotations
 
-import copy
 import datetime
 import json
 import logging
 import os
-from secrets import token_hex
 from typing import List, Tuple
 
 
 from lxml import etree
 
 import config
+from . import minimal
+from . import utils
 
 
 class ValidationReport:
@@ -66,41 +66,6 @@ class Dita2LLM:
         self.logger.addHandler(fh)
         return log_path
 
-    def _generate_id(self) -> str:
-        """Return a random hexadecimal identifier used for segment tracking."""
-
-        return token_hex(config.ID_LENGTH // 2)
-
-    def _has_inline_child(self, elem: etree._Element) -> bool:
-        """Return ``True`` if ``elem`` has any inline children."""
-
-        for child in elem:
-            if child.tag in config.INLINE_TAGS:
-                return True
-        return False
-
-    def _is_container(self, elem: etree._Element) -> bool:
-        """Return ``True`` if ``elem`` is considered a translatable block."""
-
-        if elem.tag in config.INLINE_TAGS:
-            return False
-        if elem.text and elem.text.strip():
-            return True
-        for child in elem:
-            tail_has_text = child.tail and child.tail.strip()
-            if tail_has_text or child.tag in config.INLINE_TAGS:
-                return True
-        return False
-
-    def _get_inner_xml(self, elem: etree._Element) -> str:
-        """Return the inner XML of ``elem`` without the outer tag."""
-
-        parts: List[str] = []
-        if elem.text:
-            parts.append(elem.text)
-        for child in elem:
-            parts.append(etree.tostring(child, encoding=str))
-        return "".join(parts)
 
     def parse(self, xml_path: str) -> Tuple[List[dict], str]:
         """Parse ``xml_path`` and produce JSON segments and a skeleton XML."""
@@ -122,9 +87,9 @@ class Dita2LLM:
         ids: List[Tuple[etree._Element, str]] = []
         count = 0
         for elem in root.iter():
-            if self._is_container(elem):
+            if utils.is_container(elem):
                 if "data-dita-seg-id" not in elem.attrib:
-                    seg_id = self._generate_id()
+                    seg_id = utils.generate_id()
                     elem.set("data-dita-seg-id", seg_id)
                 else:
                     seg_id = elem.get("data-dita-seg-id")
@@ -143,73 +108,20 @@ class Dita2LLM:
         segments = []
         for elem, seg_id in ids:
             segments.append(
-                {"id": seg_id, self.source_lang: self._get_inner_xml(elem)}
+                {"id": seg_id, self.source_lang: utils.get_inner_xml(elem)}
             )
         segments_path = os.path.join(
             self.intermediate_dir, f"{base}.{self.source_lang}_segments.json"
         )
         with open(segments_path, "w", encoding="utf-8") as f:
             json.dump(segments, f, indent=2, ensure_ascii=False)
-        self._write_minimal(tree, base, encoding)
+        minimal.write_minimal(tree, base, self.intermediate_dir, encoding, self.logger)
         self.logger.info("Containers found: %s", count)
         self.logger.info("JSON segments written: %s", len(segments))
         self.logger.info("Skeleton path: %s", skeleton_path)
         self.logger.info("End parse")
         return segments, skeleton_path
 
-    def _write_minimal(
-        self, tree: etree._ElementTree, base: str, encoding: str
-    ) -> None:
-        """Create a minimal placeholder version of ``tree`` for the LLM."""
-
-        minimal = copy.deepcopy(tree)
-
-        # Remove comments and processing instructions that only clutter prompts
-        for el in minimal.xpath("//comment()"):
-            el.getparent().remove(el)
-        for el in minimal.xpath("//processing-instruction()"):
-            el.getparent().remove(el)
-
-        placeholder_map: dict[str, str] = {}
-        tag_to_placeholder: dict[str, str] = {}
-        counter = 1
-        for elem in minimal.iter():
-            if elem.tag in tag_to_placeholder:
-                placeholder = tag_to_placeholder[elem.tag]
-            else:
-                placeholder = f"t{counter}"
-                tag_to_placeholder[elem.tag] = placeholder
-                placeholder_map[placeholder] = elem.tag
-                counter += 1
-            new_tag = placeholder
-            seg_id = elem.get("data-dita-seg-id")
-            # Strip attributes since the seg id gets encoded in the tag name
-            for attr in list(elem.attrib):
-                del elem.attrib[attr]
-            if seg_id:
-                new_tag = f"{placeholder}_{seg_id}"
-            elem.tag = new_tag
-        minimal_path = os.path.join(
-            self.intermediate_dir,
-            f"{base}.minimal.xml",
-        )
-        minimal_tree = etree.ElementTree(minimal.getroot())
-        minimal_tree.write(
-            minimal_path,
-            encoding=encoding,
-            xml_declaration=False,
-            pretty_print=True,
-        )
-        mapping_path = os.path.join(
-            self.intermediate_dir,
-            f"{base}.tag_mappings.txt",
-        )
-        with open(mapping_path, "w", encoding="utf-8") as f:
-            for placeholder, original in placeholder_map.items():
-                f.write(f"{placeholder} -> {original}\n")
-        self.logger.info("Minimal XML tags generated: %s", counter - 1)
-        self.logger.info("Minimal XML path: %s", minimal_path)
-        self.logger.info("Mapping path: %s", mapping_path)
 
     def integrate(self, translation_json_path: str) -> str:
         """Merge translated segments back into the skeleton XML."""
@@ -245,7 +157,7 @@ class Dita2LLM:
                 self.logger.error(f"ID {seg_id} not found in skeleton")
                 continue
             elem = elems[0]
-            self._set_inner_xml(elem, value)
+            utils.set_inner_xml(elem, value)
         # remove helper attributes before saving
         for el in root.iter():
             if "data-dita-seg-id" in el.attrib:
@@ -263,21 +175,6 @@ class Dita2LLM:
         self.logger.info("End integrate")
         return target_path
 
-    def _set_inner_xml(self, elem: etree._Element, xml_string: str) -> None:
-        """Replace the children of ``elem`` with the parsed ``xml_string``."""
-
-        # Clear existing content
-        for child in list(elem):
-            elem.remove(child)
-        elem.text = None
-        wrapper = f"<wrapper>{xml_string}</wrapper>"
-        try:
-            frag = etree.fromstring(wrapper)
-            elem.text = frag.text
-            for child in frag:
-                elem.append(child)
-        except etree.XMLSyntaxError:
-            elem.text = xml_string
 
     def validate(self, src_xml: str, tgt_xml: str) -> ValidationReport:
         """Check that ``tgt_xml`` still structurally matches ``src_xml``."""

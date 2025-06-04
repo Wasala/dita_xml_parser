@@ -3,6 +3,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import json
 from lxml import etree
 from dita_xml_parser import Dita2LLM
+from dita_xml_parser import utils
 import config
 
 SAMPLE_XML = os.path.join(os.path.dirname(__file__), '..', 'sample_data', 'sample_topic.xml')
@@ -18,7 +19,7 @@ def make_transformer(tmp_path):
 
 def test_generate_id_length(tmp_path):
     tr = make_transformer(tmp_path)
-    seg_id = tr._generate_id()
+    seg_id = utils.generate_id()
     assert len(seg_id) == config.ID_LENGTH
     int(seg_id, 16)  # should be hex
 
@@ -26,17 +27,17 @@ def test_generate_id_length(tmp_path):
 def test_is_container_and_inline(tmp_path):
     tr = make_transformer(tmp_path)
     elem = etree.fromstring('<p>This is <b>bold</b></p>')
-    assert tr._is_container(elem)
-    assert tr._has_inline_child(elem)
+    assert utils.is_container(elem)
+    assert utils.has_inline_child(elem)
     inline = etree.fromstring('<b>bold</b>')
-    assert not tr._is_container(inline)
+    assert not utils.is_container(inline)
 
 
 def test_get_and_set_inner_xml(tmp_path):
     tr = make_transformer(tmp_path)
     elem = etree.fromstring('<p>A <b>test</b></p>')
-    assert tr._get_inner_xml(elem) == 'A <b>test</b>'
-    tr._set_inner_xml(elem, 'Hello <i>World</i>')
+    assert utils.get_inner_xml(elem) == 'A <b>test</b>'
+    utils.set_inner_xml(elem, 'Hello <i>World</i>')
     assert etree.tostring(elem, encoding='unicode') == '<p>Hello <i>World</i></p>'
 
 
@@ -101,13 +102,13 @@ def test_write_minimal_creates_placeholders(tmp_path):
 def test_has_inline_child_false(tmp_path):
     tr = make_transformer(tmp_path)
     elem = etree.fromstring('<p>Just text</p>')
-    assert not tr._has_inline_child(elem)
+    assert not utils.has_inline_child(elem)
 
 
 def test_is_container_false_for_inline(tmp_path):
     tr = make_transformer(tmp_path)
     inline = etree.fromstring('<b>bold</b>')
-    assert not tr._is_container(inline)
+    assert not utils.is_container(inline)
 
 
 def test_validate_detects_mismatch(tmp_path):
