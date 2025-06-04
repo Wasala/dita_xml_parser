@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="sample_topic">
+  <title>[de-DE_1] Sample Title</title>
+  <body>
+    <p>[de-DE_2] This is the <b>first</b> paragraph with <cmd>[de-DE_3] some command</cmd>.</p>
+    <p>[de-DE_4] This is the <i>second</i> paragraph.</p>
+    <section id="section1">
+      <title>[de-DE_5] Section One Title</title>
+      <p>[de-DE_6] Text within the first section.</p>
+    </section>
+    <fig id="fig1">
+      <title>[de-DE_7] Figure Title (Not Translated)</title>
+      <image href="image.png"/>
+    </fig>
+    <p>[de-DE_8] Final paragraph with a <xref href="other.dita">cross-reference</xref>.</p>
+    <p>[de-DE_9] Text with <ph>placeholders</ph> and <sub>subscript</sub>.</p>
+  </body>
+</topic>
