@@ -3,6 +3,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import json
 from lxml import etree
 from dita_xml_parser import Dita2LLM
+from dita_xml_parser import utils
 import config
 
 COMPLEX_TOPIC = os.path.join(os.path.dirname(__file__), '..', 'sample_data', 'complex_topic.xml')
@@ -23,12 +24,12 @@ def test_nested_paragraph_inner_xml(tmp_path):
     parser = etree.XMLParser(remove_blank_text=False)
     tree = etree.parse(COMPLEX_TOPIC, parser)
     p_elem = tree.xpath('//p')[0]
-    inner = tr._get_inner_xml(p_elem)
+    inner = utils.get_inner_xml(p_elem)
     assert 'Beginning text' in inner
     assert '<ul>' in inner
     assert 'some mid text' in inner
-    tr._set_inner_xml(p_elem, inner)
-    assert tr._get_inner_xml(p_elem) == inner
+    utils.set_inner_xml(p_elem, inner)
+    assert utils.get_inner_xml(p_elem) == inner
 
 
 def test_complex_topic_parse_and_validate(tmp_path):

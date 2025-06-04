@@ -1,34 +1,53 @@
 # DITA XML LLM Transformer
 
-This package provides a workflow for extracting translatable segments from DITA/XML files, generating minimal token versions for LLM translation, and reintegrating translated text. Each XML tag is replaced by a stable placeholder so that the same element type always maps to the same token.
+Utilities for preparing DITA/XML documents for translation with large language models. The workflow extracts translatable segments, generates a minimal XML with stable placeholders, and merges translated text back into the original structure.
 
 ## Setup
 
-```
-pip install -r requirements.txt  # installs lxml
+Install dependencies and run the tests to verify the environment:
+
+```bash
+pip install -r requirements.txt
+pytest
 ```
 
-## Usage
+## Package layout
 
 ```
+dita_xml_parser/
+├── transformer.py  # Dita2LLM main workflow class
+├── utils.py        # helper functions for XML manipulation
+├── minimal.py      # create minimal placeholder XML files
+└── __init__.py     # exposes Dita2LLM for import
+```
+
+Example DITA files are provided in `sample_data/` and unit tests live in `tests/`.
+
+## Basic usage
+
+```python
 from dita_xml_parser import Dita2LLM
 
-transformer = Dita2LLM(
-    source_dir='sample_data',
-    intermediate_dir='intermediate',
-    target_dir='translated',
-    source_lang='en-US',
-    target_lang='de-DE',
-    log_dir='logs'
+tr = Dita2LLM(
+    source_dir="sample_data",
+    intermediate_dir="intermediate",
+    target_dir="translated",
 )
 
-segments, skeleton = transformer.parse('sample_data/sample_topic.xml')
-# create dummy translation
-transformer.generate_dummy_translation(os.path.join('intermediate','sample_topic.en-US_segments.json'),
-                                       os.path.join('intermediate','sample_topic.translated.json'))
-transformer.integrate(os.path.join('intermediate','sample_topic.translated.json'))
-report = transformer.validate('sample_data/sample_topic.xml', transformer._last_target_path)
-print('Validation', 'passed' if report.passed else 'failed')
+segments, skeleton = tr.parse("sample_data/sample_topic.xml")
+
+# Normally the segments would be sent for translation
+tr.generate_dummy_translation(
+    "intermediate/sample_topic.en-US_segments.json",
+    "intermediate/sample_topic.translated.json",
+)
+
+# Merge translations back into the skeleton
+tr.integrate("intermediate/sample_topic.translated.json")
+
+# Validate the result
+report = tr.validate("sample_data/sample_topic.xml", tr._last_target_path)
+print("validation", "passed" if report.passed else "failed")
 ```
 
-Outputs appear in `intermediate/`, `translated/`, and `logs/`.
+For simple workflows you can translate the generated `*.minimal.xml` and call `integrate_from_simple_xml` to reconstruct the original document.
