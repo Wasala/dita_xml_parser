@@ -1,0 +1,10 @@
+t1 -> topic
+t2 -> title
+t3 -> body
+t4 -> p
+t5 -> ul
+t6 -> li
+t7 -> i
+t8 -> b
+t9 -> section
+t10 -> u

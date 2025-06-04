@@ -1,0 +1,10 @@
+[
+  {
+    "id": "66814a5932da",
+    "de-DE": "[de-DE_1] Simple Concept"
+  },
+  {
+    "id": "37f9a2c84bb3",
+    "de-DE": "[de-DE_2] This concept references <xref href=\"complex_topic.xml\">complex topic</xref>."
+  }
+]

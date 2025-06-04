@@ -1,19 +1,19 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="sample_topic">
-  <title data-dita-seg-id="fe181ef6da32">Sample Title</title>
+  <title data-dita-seg-id="86d0e99be305">Sample Title</title>
   <body>
-    <p data-dita-seg-id="ed98232e4df5">This is the <b>first</b> paragraph with <cmd data-dita-seg-id="8c22d5d2434a">some command</cmd>.</p>
-    <p data-dita-seg-id="964b1009179d">This is the <i>second</i> paragraph.</p>
+    <p data-dita-seg-id="92aba6ef02dd">This is the <b>first</b> paragraph with <cmd data-dita-seg-id="2c16d754cb56">some command</cmd>.</p>
+    <p data-dita-seg-id="7884a6425b06">This is the <i>second</i> paragraph.</p>
     <section id="section1">
-      <title data-dita-seg-id="f69769c2f07b">Section One Title</title>
-      <p data-dita-seg-id="60ebd880f5bc">Text within the first section.</p>
+      <title data-dita-seg-id="60aec6136e1d">Section One Title</title>
+      <p data-dita-seg-id="0c88283b52a5">Text within the first section.</p>
     </section>
     <fig id="fig1">
-      <title data-dita-seg-id="bc68ccc47ac0">Figure Title (Not Translated)</title>
+      <title data-dita-seg-id="8fdb42c6c1b5">Figure Title (Not Translated)</title>
       <image href="image.png"/>
     </fig>
-    <p data-dita-seg-id="2cf5b031a062">Final paragraph with a <xref href="other.dita">cross-reference</xref>.</p>
-    <p data-dita-seg-id="6aab6e9de9fe">Text with <ph>placeholders</ph> and <sub>subscript</sub>.</p>
+    <p data-dita-seg-id="07d4f43ec877">Final paragraph with a <xref href="other.dita">cross-reference</xref>.</p>
+    <p data-dita-seg-id="c3de9ea4d810">Text with <ph>placeholders</ph> and <sub>subscript</sub>.</p>
   </body>
 </topic>

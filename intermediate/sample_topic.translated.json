@@ -1,38 +1,38 @@
 [
   {
-    "id": "fe181ef6da32",
+    "id": "86d0e99be305",
     "de-DE": "[de-DE_1] Sample Title"
   },
   {
-    "id": "ed98232e4df5",
-    "de-DE": "[de-DE_2] This is the <b>first</b> paragraph with <cmd data-dita-seg-id=\"8c22d5d2434a\">some command</cmd>."
+    "id": "92aba6ef02dd",
+    "de-DE": "[de-DE_2] This is the <b>first</b> paragraph with <cmd data-dita-seg-id=\"2c16d754cb56\">some command</cmd>."
   },
   {
-    "id": "8c22d5d2434a",
+    "id": "2c16d754cb56",
     "de-DE": "[de-DE_3] some command"
   },
   {
-    "id": "964b1009179d",
+    "id": "7884a6425b06",
     "de-DE": "[de-DE_4] This is the <i>second</i> paragraph."
   },
   {
-    "id": "f69769c2f07b",
+    "id": "60aec6136e1d",
     "de-DE": "[de-DE_5] Section One Title"
   },
   {
-    "id": "60ebd880f5bc",
+    "id": "0c88283b52a5",
     "de-DE": "[de-DE_6] Text within the first section."
   },
   {
-    "id": "bc68ccc47ac0",
+    "id": "8fdb42c6c1b5",
     "de-DE": "[de-DE_7] Figure Title (Not Translated)"
   },
   {
-    "id": "2cf5b031a062",
+    "id": "07d4f43ec877",
     "de-DE": "[de-DE_8] Final paragraph with a <xref href=\"other.dita\">cross-reference</xref>."
   },
   {
-    "id": "6aab6e9de9fe",
+    "id": "c3de9ea4d810",
     "de-DE": "[de-DE_9] Text with <ph>placeholders</ph> and <sub>subscript</sub>."
   }
 ]

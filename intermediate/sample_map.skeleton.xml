@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE map PUBLIC "-//OASIS//DTD DITA Map//EN" "map.dtd">
+<map>
+  <title data-dita-seg-id="f173f22636c0">Sample Map</title>
+  <topicref href="sample_topic.xml"/>
+  <topicref href="complex_topic.xml"/>
+  <topicref href="simple_concept.xml"/>
+</map>
