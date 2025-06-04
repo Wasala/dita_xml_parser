@@ -128,10 +128,9 @@ class Dita2LLM:
             placeholder_map[placeholder] = elem.tag
             new_tag = placeholder
             seg_id = elem.get('data-dita-seg-id')
-            # strip attributes except seg id
+            # strip all attributes; seg id will be encoded in the tag name
             for attr in list(elem.attrib):
-                if attr != 'data-dita-seg-id':
-                    del elem.attrib[attr]
+                del elem.attrib[attr]
             if seg_id:
                 new_tag = f"{placeholder}_{seg_id}"
             elem.tag = new_tag
