@@ -1,3 +1,5 @@
+"""Transformation utilities for preparing DITA XML for LLM translation."""
+
 import os
 import json
 import logging
