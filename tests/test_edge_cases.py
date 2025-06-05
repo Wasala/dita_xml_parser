@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import io
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from lxml import etree
@@ -38,6 +39,18 @@ def test_write_minimal_strips_comments_and_pi(tmp_path):
     out = (tmp_path / 'x.minimal.xml').read_text(encoding='utf-8')
     assert '<!--' not in out
     assert '<?proc' not in out
+
+
+def test_write_minimal_handles_top_level_comments(tmp_path):
+    xml = '<!--top--><?pi?><topic>t</topic>'
+    parser = etree.XMLParser(remove_blank_text=False)
+    tree = etree.parse(io.StringIO(xml), parser)
+    logger = logging.getLogger("test")
+    # Should not raise when removing comments without a parent
+    minimal.write_minimal(tree, 'y', str(tmp_path), 'utf-8', logger)
+    out = (tmp_path / 'y.minimal.xml').read_text(encoding='utf-8')
+    assert '<!--' not in out
+    assert '<?pi' not in out
 
 
 def test_is_container_with_tail_text():

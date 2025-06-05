@@ -277,7 +277,9 @@ class Dita2LLM:
         root = tree.getroot()
         ids: List[Tuple[etree._Element, str]] = []
         count = 0
-        for elem in root.iter():
+        # Only iterate over element nodes to avoid comments and processing
+        # instructions which do not support attributes.
+        for elem in root.iter("*"):
             if utils.is_container(elem):
                 if "data-dita-seg-id" not in elem.attrib:
                     seg_id = utils.generate_id()
