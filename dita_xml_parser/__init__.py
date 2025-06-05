@@ -1,8 +1,9 @@
-"""Convenience exports for the ``dita_xml_parser`` package.
+"""Public entry points for :mod:`dita_xml_parser`.
 
-The package mainly exposes :class:`Dita2LLM` which implements the
-transformation workflow used in the tests.  Keeping the import in this module
-allows ``from dita_xml_parser import Dita2LLM`` to work for novice users.
+This module re-exports the primary classes so that applications can simply
+import :class:`~dita_xml_parser.transformer.Dita2LLM` without touching any of
+the implementation modules.  The indirection keeps import time minimal and
+avoids leaking internal helpers into the API.
 """
 
 from .transformer import Dita2LLM

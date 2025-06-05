@@ -1,4 +1,11 @@
-"""Functions for generating simplified placeholder XML versions."""
+"""Creation of light-weight XML files for machine translation.
+
+The ``write_minimal`` utility strips comments and processing instructions and
+replaces real tag names with short placeholders.  The intent is to reduce the
+size and vocabulary of the XML so that LLM based translators see only the text
+content with minimal structural noise.  Mapping information is written out so
+that placeholders can later be restored to their original names.
+"""
 
 from __future__ import annotations
 
@@ -17,7 +24,22 @@ def write_minimal(
     encoding: str,
     logger,
 ) -> None:
-    """Create a minimal placeholder version of ``tree`` for the LLM."""
+    """Write a simplified XML copy for translation.
+
+    The goal is to feed a smaller and more uniform document to large language
+    models.  Every tag is replaced with a numbered placeholder so the resulting
+    file contains only the text to be translated and minimal structural cues.
+    This reduces prompt size and encourages consistent handling of repeated
+    tags.  A mapping is stored alongside the minimal file so that placeholders
+    can be restored after translation.
+
+    :param tree: Parsed source XML tree.
+    :param base: Base filename used when writing output files.
+    :param intermediate_dir: Directory for temporary artifacts.
+    :param encoding: Encoding used when serializing XML.
+    :param logger: Logger for progress messages.
+    :returns: ``None``. Files are written for later stages.
+    """
     minimal = copy.deepcopy(tree)
 
     for el in minimal.xpath("//comment()"):

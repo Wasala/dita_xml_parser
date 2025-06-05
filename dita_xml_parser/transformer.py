@@ -1,4 +1,12 @@
-"""Transformation utilities for preparing DITA XML for LLM translation."""
+"""End-to-end helpers for translating DITA XML with LLMs.
+
+This module contains the :class:`Dita2LLM` workflow which performs three main
+steps: parsing source files, applying translations and validating the result.
+It writes intermediate artifacts so the potentially expensive translation step
+can be repeated or performed offline.  The design favors transparency and
+modularity over raw speed, making it easier to debug and adapt to different
+translation providers.
+"""
 
 from __future__ import annotations
 
@@ -23,7 +31,13 @@ DEFAULT_LOG_DIR = "logs"
 
 
 class Dita2LLM:
-    """Coordinate parsing and reintegration of DITA XML files."""
+    """High level workflow for XML translation.
+
+    The class writes intermediate JSON and skeleton files so that translators
+    can operate on small, self contained snippets.  Each step logs its actions
+    to make troubleshooting easier.  Paths can be given relative to configured
+    directories which simplifies testing and integration with other tools.
+    """
 
     def __init__(
         self,
@@ -47,7 +61,15 @@ class Dita2LLM:
 
     # Utility functions
     def _init_log(self, xml_path: str) -> str:
-        """Start a fresh log file for the given XML path."""
+        """Create a dedicated log file for a processing run.
+
+        Each XML file processed gets its own timestamped log.  This avoids
+        interleaving messages from parallel runs and keeps troubleshooting
+        focused on a single document.
+
+        :param xml_path: Path of the XML file being processed.
+        :returns: The full path to the created log file.
+        """
 
         for handler in list(self.logger.handlers):
             self.logger.removeHandler(handler)
@@ -63,7 +85,18 @@ class Dita2LLM:
     def _apply_translations(
         self, root: etree._Element, translations: List[dict]
     ) -> None:
-        """Insert ``translations`` into ``root`` in place."""
+        """Insert translated text back into the skeleton.
+
+        The ``translations`` list is expected to contain dictionaries keyed by
+        segment identifiers.  For robustness the method supports both
+        ``{"id": "xyz", "de-DE": "..."}`` and ``{"xyz": "..."}`` styles.  Missing
+        identifiers are logged but otherwise ignored so partial translations do
+        not abort the workflow.
+
+        :param root: Skeleton XML tree to modify.
+        :param translations: Sequence of translation entries.
+        :returns: ``None``.
+        """
 
         for entry in translations:
             if "id" in entry:
@@ -80,13 +113,28 @@ class Dita2LLM:
             utils.set_inner_xml(elems[0], value)
 
     def _remove_seg_ids(self, root: etree._Element) -> None:
-        """Delete helper segmentation attributes from ``root``."""
+        """Strip temporary segmentation IDs.
+
+        After translations are applied the ``data-dita-seg-id`` attributes are
+        no longer needed and might confuse downstream tooling.  The removal is
+        done in-place on the provided tree.
+
+        :param root: XML element whose descendants are cleaned.
+        """
 
         for el in root.xpath("//*[@data-dita-seg-id]"):
             del el.attrib["data-dita-seg-id"]
 
     def _load_mappings(self, path: str) -> Dict[str, str]:
-        """Return placeholder tag mappings from ``path``."""
+        """Read the placeholder-to-tag mapping from disk.
+
+        The mapping file is produced during :func:`minimal.write_minimal` and
+        pairs each generated placeholder with the original element name.  It is
+        a simple ``key -> value`` text format which keeps inspection easy.
+
+        :param path: Location of the mapping file.
+        :returns: Dictionary mapping placeholders to original tag names.
+        """
 
         mappings: Dict[str, str] = {}
         with open(path, "r", encoding="utf-8") as f:
@@ -97,7 +145,17 @@ class Dita2LLM:
         return mappings
 
     def _replace_placeholders(self, tree: etree._ElementTree, mappings: Dict[str, str]) -> None:
-        """Swap placeholder tags in ``tree`` with real names."""
+        """Restore original tag names in a minimal tree.
+
+        During integration the minimal XML still uses placeholders.  This
+        helper walks the tree and swaps each placeholder for its original name,
+        optionally re-attaching the ``data-dita-seg-id`` attribute when present
+        in the placeholder tag.
+
+        :param tree: Minimal XML tree to update.
+        :param mappings: Placeholder mapping produced earlier.
+        :returns: ``None``.
+        """
 
         for elem in tree.getroot().iter():
             tag = elem.tag
@@ -111,7 +169,17 @@ class Dita2LLM:
                 elem.set("data-dita-seg-id", seg_id)
 
     def _merge_simple(self, simple_root: etree._Element, skeleton_root: etree._Element) -> None:
-        """Merge ``simple_root`` content into ``skeleton_root``."""
+        """Merge translated minimal XML with the original skeleton.
+
+        The algorithm walks both trees simultaneously, aligning nodes by
+        ``data-dita-seg-id`` when present or by tag order otherwise.  Attributes
+        from the skeleton are preserved if missing in the translated fragment to
+        avoid losing metadata.  The method mutates ``skeleton_root`` in place.
+
+        :param simple_root: Root of the translated minimal XML.
+        :param skeleton_root: Root of the skeleton XML to update.
+        :returns: ``None``.
+        """
 
         def copy_attrs(src: etree._Element, dst: etree._Element) -> None:
             for k, v in dst.attrib.items():
@@ -146,7 +214,16 @@ class Dita2LLM:
                 merge(seg_elem, match[0])
 
     def _resolve(self, path: str, base: str | None) -> str:
-        """Return ``path`` joined with ``base`` if it lacks directory info."""
+        """Normalize file paths for convenience.
+
+        Many public methods allow callers to pass just a basename.  This helper
+        joins such names with a provided base directory so tests can use
+        temporary folders without computing full paths themselves.
+
+        :param path: User supplied path, possibly just a filename.
+        :param base: Directory to prepend when ``path`` has no directory part.
+        :returns: An absolute or relative path ready for I/O operations.
+        """
 
         if os.path.isabs(path) or os.path.dirname(path):
             return path
@@ -155,7 +232,15 @@ class Dita2LLM:
         return path
 
     def _detect_encoding(self, xml_path: str) -> str:
-        """Return encoding declared in ``xml_path`` or ``utf-8``."""
+        """Detect the declared XML encoding.
+
+        Reading only the header keeps the operation fast while covering typical
+        declarations.  If no encoding is specified ``utf-8`` is assumed, which
+        matches the DITA default.
+
+        :param xml_path: Path to the XML file.
+        :returns: The encoding string.
+        """
 
         with open(xml_path, "rb") as f:
             header = f.read(200).decode("ascii", errors="ignore")
@@ -168,7 +253,20 @@ class Dita2LLM:
         skeleton_path: str | None = None,
         segments_path: str | None = None,
     ) -> Tuple[List[dict], str]:
-        """Parse ``xml_path`` and produce JSON segments and a skeleton XML."""
+        """Convert a source XML file into translation-ready artifacts.
+
+        The parser assigns stable identifiers to each translatable container and
+        writes two files: a skeleton XML preserving structure and a JSON list of
+        segments.  A minimal XML with placeholders is also produced for simple
+        editing scenarios.  The return value allows callers to further process
+        the segments before integration.
+
+        :param xml_path: Path to the source XML topic.
+        :param skeleton_path: Optional destination for the skeleton XML.
+        :param segments_path: Optional path for the segments JSON.
+        :returns: ``(segments, skeleton_path)`` where ``segments`` is a list of
+            dictionaries.
+        """
 
         xml_path = self._resolve(xml_path, self.source_dir)
         self._init_log(xml_path)
@@ -219,7 +317,17 @@ class Dita2LLM:
         skeleton_path: str | None = None,
         output_path: str | None = None,
     ) -> str:
-        """Merge translated segments back into the skeleton XML."""
+        """Produce a translated XML file from a segments JSON.
+
+        The method resolves any relative paths, loads the skeleton created
+        during :meth:`parse`, applies the provided translations and writes the
+        final XML.  It logs each step so issues can be traced after the fact.
+
+        :param translation_json_path: JSON file with translated segments.
+        :param skeleton_path: Optional path to the skeleton XML to use.
+        :param output_path: Optional destination for the resulting XML.
+        :returns: Path to the written translated XML file.
+        """
 
         translation_json_path = self._resolve(translation_json_path, self.intermediate_dir)
         self.logger.info("Start integrate: %s", translation_json_path)
@@ -258,7 +366,15 @@ class Dita2LLM:
         return target_path
 
     def validate(self, src_xml: str, tgt_xml: str) -> ValidationReport:
-        """Check that ``tgt_xml`` still structurally matches ``src_xml``."""
+        """Run :class:`DitaValidator` on a pair of files.
+
+        Convenience wrapper that resolves relative paths using the object's
+        directories before delegating to :class:`DitaValidator`.
+
+        :param src_xml: Source XML document path.
+        :param tgt_xml: Translated XML document path.
+        :returns: Validation results.
+        """
 
         src_xml = self._resolve(src_xml, self.source_dir)
         tgt_xml = self._resolve(tgt_xml, self.target_dir)
@@ -266,7 +382,16 @@ class Dita2LLM:
         return self.validator.validate(src_xml, tgt_xml, skel_dir)
 
     def generate_dummy_translation(self, segments_json_path: str, output_path: str) -> str:
-        """Create a dummy translation JSON file for testing."""
+        """Generate a fake translation file for unit tests.
+
+        Each source segment is prefixed with ``[<lang>_<n>]`` to make it obvious
+        that the data is synthetic.  This allows the rest of the workflow to be
+        exercised without contacting a real translation service.
+
+        :param segments_json_path: Path to the original segments JSON.
+        :param output_path: Location to write the dummy translation file.
+        :returns: Path to the created file.
+        """
 
         segments_json_path = self._resolve(segments_json_path, self.intermediate_dir)
         output_path = self._resolve(output_path, self.intermediate_dir)
@@ -287,25 +412,15 @@ class Dita2LLM:
         return output_path
 
     def integrate_from_simple_xml(self, simple_xml_path: str) -> Tuple[str, ValidationReport]:
-        """Integrate translations from a translated minimal XML file.
+        """Integrate a translated minimal XML back into full form.
 
-        The provided ``simple_xml_path`` should point to a minimal XML where the
-        element names are placeholder tags generated by :meth:`parse` and the
-        textual content has been translated. Segmentation identifiers are
-        encoded in the tag name after an underscore.  This method reconstructs
-        the original XML structure using the mapping and skeleton created during
-        parsing, integrates the translated text, and validates the final file
-        against the source XML.
+        The minimal XML uses placeholder tags and embeds the segment ID within
+        the tag name.  This method reverses that transformation by using the
+        stored mapping and skeleton.  It is useful when translators edit the
+        minimal form directly rather than sending JSON segments back.
 
-        Parameters
-        ----------
-        simple_xml_path: str
-            Path to the translated minimal XML file.
-
-        Returns
-        -------
-        Tuple[str, ValidationReport]
-            Path to the generated translated XML and the validation report.
+        :param simple_xml_path: Path to the translated minimal XML file.
+        :returns: Tuple of the output XML path and the validation report.
         """
         simple_xml_path = self._resolve(simple_xml_path, self.intermediate_dir)
         self.logger.info("Start integrate from simple XML: %s", simple_xml_path)
