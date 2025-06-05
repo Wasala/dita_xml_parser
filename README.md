@@ -68,6 +68,43 @@ report = tr.validate("sample_topic.xml", target_path)
 print("validation", "passed" if report.passed else "failed")
 ```
 
+### File naming conventions
+
+The helper methods derive most output paths from the input filename.  When
+`parse()` processes `sample_topic.xml` it creates the following intermediate
+files inside `intermediate/`:
+
+```
+sample_topic.skeleton.xml        # XML skeleton used during integration
+sample_topic.en-US_segments.json # extracted segments in the source language
+sample_topic.minimal.xml         # placeholder XML for simple translation
+sample_topic.tag_mappings.txt    # mapping of placeholders to real tag names
+```
+
+`generate_dummy_translation()` or your own translation step typically reads the
+`*.segments.json` file and writes a JSON translation.  A common convention is to
+use `sample_topic.translated.json` or `sample_topic.de-DE_translated.json`.  The
+`integrate()` method strips these suffixes automatically and therefore expects a
+file named `sample_topic.skeleton.xml` next to it.  The integrated result is
+written as `translated/sample_topic.xml` unless a custom `output_path` is
+provided.
+
+When translating the minimal XML directly, edit
+`sample_topic.minimal.xml` and save the result as
+`sample_topic.minimal.translated.xml`.  The helper
+`integrate_from_simple_xml()` looks for the accompanying
+`sample_topic.tag_mappings.txt` and `sample_topic.skeleton.xml` files in the
+same directory and produces the final `sample_topic.xml` in the target folder.
+
+The overall workflow therefore looks like this:
+
+1. `parse()` → creates `*.skeleton.xml`, `*.<src>_segments.json`, `*.minimal.xml`
+   and `*.tag_mappings.txt`.
+2. Translate the segments JSON (or the minimal XML).
+3. `integrate()` with the translated JSON **or** `integrate_from_simple_xml()`
+   with the translated minimal XML.
+4. `validate()` to ensure no structure was lost.
+
 ## Development
 
 The repository ships with unit tests and a ``pylint`` configuration. Run the
