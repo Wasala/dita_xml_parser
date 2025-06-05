@@ -40,12 +40,17 @@ def write_minimal(
     :param logger: Logger for progress messages.
     :returns: ``None``. Files are written for later stages.
     """
-    minimal = copy.deepcopy(tree)
+    # copy only the root element to avoid preserving top-level comments and PIs
+    minimal = etree.ElementTree(copy.deepcopy(tree.getroot()))
 
-    for el in minimal.xpath("//comment()"):
-        el.getparent().remove(el)
-    for el in minimal.xpath("//processing-instruction()"):
-        el.getparent().remove(el)
+    for el in minimal.xpath("//comment()"): 
+        parent = el.getparent()
+        if parent is not None:
+            parent.remove(el)
+    for el in minimal.xpath("//processing-instruction()"): 
+        parent = el.getparent()
+        if parent is not None:
+            parent.remove(el)
 
     placeholder_map: Dict[str, str] = {}
     tag_to_placeholder: Dict[str, str] = {}
