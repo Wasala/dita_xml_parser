@@ -145,3 +145,20 @@ def test_integrate_from_simple_xml_nested_segment(tmp_path):
     tree = etree.parse(str(target_path))
     cmd_text = tree.xpath('//cmd')[0].text
     assert 'translated' in cmd_text
+
+
+def test_simple_xml_untranslated_detection(tmp_path):
+    tr = make_transformer(tmp_path)
+    tr.parse(SAMPLE_XML)
+    minimal = tmp_path / 'intermediate' / 'sample_topic.minimal.xml'
+    mapping = tmp_path / 'intermediate' / 'sample_topic.tag_mappings.txt'
+    translated = build_translated_simple(minimal, mapping)
+    parser = etree.XMLParser(remove_blank_text=False)
+    tree = etree.parse(str(translated), parser)
+    first = next(e for e in tree.getroot().iter() if '_' in e.tag)
+    if first.text:
+        first.text = first.text.replace('translated ', '')
+    tree.write(str(translated), encoding='utf-8', pretty_print=True)
+    target_path, report = tr.integrate_from_simple_xml(str(translated))
+    assert report.passed
+    assert any('Untranslated segment' in d for d in report.details)
