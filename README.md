@@ -16,9 +16,10 @@ pytest
 ```
 dita_xml_parser/
 ├── transformer.py  # Dita2LLM main workflow class
+├── validator.py    # XML structure validation utilities
 ├── utils.py        # helper functions for XML manipulation
 ├── minimal.py      # create minimal placeholder XML files
-└── __init__.py     # exposes Dita2LLM for import
+└── __init__.py     # exposes package classes for import
 ```
 
 Example DITA files are provided in `sample_data/` and unit tests live in `tests/`.

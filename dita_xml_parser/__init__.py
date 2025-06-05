@@ -6,5 +6,6 @@ allows ``from dita_xml_parser import Dita2LLM`` to work for novice users.
 """
 
 from .transformer import Dita2LLM
+from .validator import DitaValidator, ValidationReport
 
-__all__ = ["Dita2LLM"]
+__all__ = ["Dita2LLM", "DitaValidator", "ValidationReport"]
