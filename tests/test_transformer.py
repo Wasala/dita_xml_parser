@@ -176,3 +176,26 @@ def test_validate_with_basenames(tmp_path):
     tr.integrate("sample_topic.translated.json")
     report = tr.validate("sample_topic.xml", "sample_topic.xml")
     assert report.passed
+
+
+def test_validate_flags_untranslated(tmp_path):
+    tr = make_transformer(tmp_path)
+    segments, _ = tr.parse(SAMPLE_XML)
+    seg_path = tmp_path / "intermediate" / "sample_topic.en-US_segments.json"
+    with open(seg_path, "r", encoding="utf-8") as f:
+        segs = json.load(f)
+    trans = []
+    for idx, seg in enumerate(segs, start=1):
+        text = seg["en-US"]
+        if idx == 1:
+            trans_text = text  # leave untranslated
+        else:
+            trans_text = f"translated {text}"
+        trans.append({"id": seg["id"], "de-DE": trans_text})
+    trans_path = tmp_path / "intermediate" / "sample_topic.custom.json"
+    with open(trans_path, "w", encoding="utf-8") as f:
+        json.dump(trans, f, ensure_ascii=False, indent=2)
+    target = tr.integrate(str(trans_path))
+    report = tr.validate(SAMPLE_XML, target)
+    assert report.passed
+    assert any("Untranslated segment" in d for d in report.details)

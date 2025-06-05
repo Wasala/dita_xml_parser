@@ -51,6 +51,7 @@ class Dita2LLM:
         self.logger.setLevel(getattr(logging, config.LOG_LEVEL))
         # Path to the most recently generated target file
         self._last_target_path: str | None = None
+        self._log_path: str | None = None
 
     # Utility functions
     def _init_log(self, xml_path: str) -> str:
@@ -65,6 +66,7 @@ class Dita2LLM:
         formatter = logging.Formatter("%(asctime)s %(levelname)s:%(message)s")
         fh.setFormatter(formatter)
         self.logger.addHandler(fh)
+        self._log_path = log_path
         return log_path
 
     def _resolve(self, path: str, base: str | None) -> str:
@@ -85,7 +87,7 @@ class Dita2LLM:
         """Parse ``xml_path`` and produce JSON segments and a skeleton XML."""
 
         xml_path = self._resolve(xml_path, self.source_dir)
-        self._init_log(xml_path)
+        self._log_path = self._init_log(xml_path)
         self.logger.info("Start parse: %s", xml_path)
         with open(xml_path, "rb") as f:
             header = f.read(200).decode("ascii", errors="ignore")
@@ -213,6 +215,7 @@ class Dita2LLM:
             self.logger.error(f"Validation parse error: {e}")
             return ValidationReport(False, [str(e)])
         errors = []
+        warnings: List[str] = []
         if src_tree.docinfo.doctype != tgt_tree.docinfo.doctype:
             errors.append("DOCTYPE changed")
 
@@ -239,11 +242,33 @@ class Dita2LLM:
                     errors.append(f"pi mismatch at {path}")
 
         walk(src_tree.getroot(), tgt_tree.getroot())
+
+        base = os.path.splitext(os.path.basename(src_xml))[0]
+        skel_dir = self.intermediate_dir or os.path.dirname(tgt_xml)
+        skeleton_path = os.path.join(skel_dir, f"{base}.skeleton.xml")
+        if os.path.exists(skeleton_path):
+            skel_tree = etree.parse(skeleton_path, parser)
+            skel_et = etree.ElementTree(skel_tree.getroot())
+            for seg_elem in skel_tree.xpath("//*[@data-dita-seg-id]"):
+                seg_id = seg_elem.get("data-dita-seg-id")
+                xpath = skel_et.getpath(seg_elem)
+                src_match = src_tree.xpath(xpath)
+                tgt_match = tgt_tree.xpath(xpath)
+                if src_match and tgt_match:
+                    s_inner = utils.get_inner_xml(src_match[0]).strip()
+                    t_inner = utils.get_inner_xml(tgt_match[0]).strip()
+                    if s_inner == t_inner and s_inner:
+                        msg = f"Untranslated segment {seg_id} at {xpath}"
+                        warnings.append(msg)
+                        self.logger.warning(msg)
+
         passed = not errors
         for err in errors:
             self.logger.error(err)
+        for warn in warnings:
+            self.logger.warning(warn)
         self.logger.info("End validate")
-        return ValidationReport(passed, errors)
+        return ValidationReport(passed, errors + warnings)
 
     def generate_dummy_translation(self, segments_json_path: str, output_path: str) -> str:
         segments_json_path = self._resolve(segments_json_path, self.intermediate_dir)
