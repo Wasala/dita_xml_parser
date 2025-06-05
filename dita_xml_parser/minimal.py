@@ -8,10 +8,15 @@ from typing import Dict
 
 from lxml import etree
 
-import config
 
 
-def write_minimal(tree: etree._ElementTree, base: str, intermediate_dir: str, encoding: str, logger) -> None:
+def write_minimal(
+    tree: etree._ElementTree,
+    base: str,
+    intermediate_dir: str,
+    encoding: str,
+    logger,
+) -> None:
     """Create a minimal placeholder version of ``tree`` for the LLM."""
     minimal = copy.deepcopy(tree)
 
