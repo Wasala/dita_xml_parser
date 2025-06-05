@@ -6,6 +6,7 @@ import datetime
 import json
 import logging
 import os
+import re
 from typing import Dict, List, Tuple
 
 
@@ -15,6 +16,8 @@ import config
 from . import minimal
 from . import utils
 from .validator import DitaValidator, ValidationReport
+
+DEFAULT_LOG_DIR = "logs"
 
 
 
@@ -27,27 +30,20 @@ class Dita2LLM:
         source_dir: str | None = None,
         intermediate_dir: str | None = None,
         target_dir: str | None = None,
-        source_lang: str = "en-US",
-        target_lang: str = "de-DE",
-        log_dir: str = "logs",
+        languages: Tuple[str, str] = ("en-US", "de-DE"),
     ) -> None:
         self.source_dir = source_dir
         self.intermediate_dir = intermediate_dir
         self.target_dir = target_dir
-        self.source_lang = source_lang
-        self.target_lang = target_lang
-        self.log_dir = log_dir
+        self.source_lang, self.target_lang = languages
         if self.intermediate_dir:
             os.makedirs(self.intermediate_dir, exist_ok=True)
         if self.target_dir:
             os.makedirs(self.target_dir, exist_ok=True)
-        os.makedirs(self.log_dir, exist_ok=True)
+        os.makedirs(DEFAULT_LOG_DIR, exist_ok=True)
         self.logger = logging.getLogger("Dita2LLM")
         self.logger.setLevel(getattr(logging, config.LOG_LEVEL))
         self.validator = DitaValidator(self.logger)
-        # Path to the most recently generated target file
-        self._last_target_path: str | None = None
-        self._log_path: str | None = None
 
     # Utility functions
     def _init_log(self, xml_path: str) -> str:
@@ -57,13 +53,97 @@ class Dita2LLM:
             self.logger.removeHandler(handler)
         ts = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         base = os.path.splitext(os.path.basename(xml_path))[0]
-        log_path = os.path.join(self.log_dir, f"{base}_{ts}.log")
+        log_path = os.path.join(DEFAULT_LOG_DIR, f"{base}_{ts}.log")
         fh = logging.FileHandler(log_path)
         formatter = logging.Formatter("%(asctime)s %(levelname)s:%(message)s")
         fh.setFormatter(formatter)
         self.logger.addHandler(fh)
-        self._log_path = log_path
         return log_path
+
+    def _apply_translations(
+        self, root: etree._Element, translations: List[dict]
+    ) -> None:
+        """Insert ``translations`` into ``root`` in place."""
+
+        for entry in translations:
+            if "id" in entry:
+                seg_id = entry["id"]
+                value = entry.get(self.target_lang) or next(
+                    (v for k, v in entry.items() if k != "id"), ""
+                )
+            else:
+                seg_id, value = next(iter(entry.items()))
+            elems = root.xpath(f"//*[@data-dita-seg-id='{seg_id}']")
+            if not elems:
+                self.logger.error("ID %s not found in skeleton", seg_id)
+                continue
+            utils.set_inner_xml(elems[0], value)
+
+    def _remove_seg_ids(self, root: etree._Element) -> None:
+        """Delete helper segmentation attributes from ``root``."""
+
+        for el in root.xpath("//*[@data-dita-seg-id]"):
+            del el.attrib["data-dita-seg-id"]
+
+    def _load_mappings(self, path: str) -> Dict[str, str]:
+        """Return placeholder tag mappings from ``path``."""
+
+        mappings: Dict[str, str] = {}
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                if "->" in line:
+                    ph, tag = line.strip().split(" -> ")
+                    mappings[ph] = tag
+        return mappings
+
+    def _replace_placeholders(self, tree: etree._ElementTree, mappings: Dict[str, str]) -> None:
+        """Swap placeholder tags in ``tree`` with real names."""
+
+        for elem in tree.getroot().iter():
+            tag = elem.tag
+            seg_id = None
+            if "_" in tag:
+                placeholder, seg_id = tag.split("_", 1)
+            else:
+                placeholder = tag
+            elem.tag = mappings.get(placeholder, placeholder)
+            if seg_id:
+                elem.set("data-dita-seg-id", seg_id)
+
+    def _merge_simple(self, simple_root: etree._Element, skeleton_root: etree._Element) -> None:
+        """Merge ``simple_root`` content into ``skeleton_root``."""
+
+        def copy_attrs(src: etree._Element, dst: etree._Element) -> None:
+            for k, v in dst.attrib.items():
+                if k not in src.attrib:
+                    src.set(k, v)
+
+        def merge(trans_elem: etree._Element, skel_elem: etree._Element) -> None:
+            copy_attrs(trans_elem, skel_elem)
+            skel_elem.text = trans_elem.text
+            used: List[etree._Element] = []
+            for s_child in skel_elem:
+                match = None
+                sid = s_child.get("data-dita-seg-id")
+                if sid:
+                    for c in trans_elem.xpath(f"*[@data-dita-seg-id='{sid}']"):
+                        match = c
+                        break
+                else:
+                    for c in trans_elem:
+                        if c.tag == s_child.tag and c not in used:
+                            match = c
+                            used.append(c)
+                            break
+                if match is not None:
+                    merge(match, s_child)
+                    s_child.tail = match.tail
+
+        for seg_elem in simple_root.xpath("//*[@data-dita-seg-id]"):
+            seg_id = seg_elem.get("data-dita-seg-id")
+            match = skeleton_root.xpath(f"//*[@data-dita-seg-id='{seg_id}']")
+            if match:
+                merge(seg_elem, match[0])
 
     def _resolve(self, path: str, base: str | None) -> str:
         """Return ``path`` joined with ``base`` if it lacks directory info."""
@@ -74,6 +154,14 @@ class Dita2LLM:
             return os.path.join(base, path)
         return path
 
+    def _detect_encoding(self, xml_path: str) -> str:
+        """Return encoding declared in ``xml_path`` or ``utf-8``."""
+
+        with open(xml_path, "rb") as f:
+            header = f.read(200).decode("ascii", errors="ignore")
+        match = re.search(r"encoding=[\"']([^\"']+)[\"']", header)
+        return match.group(1) if match else "utf-8"
+
     def parse(
         self,
         xml_path: str,
@@ -83,17 +171,9 @@ class Dita2LLM:
         """Parse ``xml_path`` and produce JSON segments and a skeleton XML."""
 
         xml_path = self._resolve(xml_path, self.source_dir)
-        self._log_path = self._init_log(xml_path)
+        self._init_log(xml_path)
         self.logger.info("Start parse: %s", xml_path)
-        with open(xml_path, "rb") as f:
-            header = f.read(200).decode("ascii", errors="ignore")
-        encoding = "utf-8"
-        if "encoding" in header:
-            import re
-
-            match = re.search(r"encoding=[\"']([^\"']+)[\"']", header)
-            if match:
-                encoding = match.group(1)
+        encoding = self._detect_encoding(xml_path)
         parser = etree.XMLParser(remove_blank_text=False)
         tree = etree.parse(xml_path, parser)
         root = tree.getroot()
@@ -147,12 +227,9 @@ class Dita2LLM:
             translations = json.load(f)
         if isinstance(translations, dict):
             translations = [translations]
-        # Determine base name
         name = os.path.splitext(os.path.basename(translation_json_path))[0]
-        if name.endswith(f".{self.target_lang}_translated"):
-            base = name[: -(len(self.target_lang) + 12)]
-        else:
-            base = name.split(".")[0]
+        suffix = f".{self.target_lang}_translated"
+        base = name[:-len(suffix)] if name.endswith(suffix) else name.split(".")[0]
         if skeleton_path is None:
             skel_base = self.intermediate_dir or os.path.dirname(translation_json_path)
             skeleton_path = os.path.join(skel_base, f"{base}.skeleton.xml")
@@ -161,24 +238,8 @@ class Dita2LLM:
         parser = etree.XMLParser(remove_blank_text=False)
         tree = etree.parse(skeleton_path, parser)
         root = tree.getroot()
-        for idx, entry in enumerate(translations, start=1):
-            if "id" in entry:
-                seg_id = entry["id"]
-                value = entry.get(self.target_lang) or next(
-                    (v for k, v in entry.items() if k != "id"), ""
-                )
-            else:
-                seg_id, value = next(iter(entry.items()))
-            elems = root.xpath(f"//*[@data-dita-seg-id='{seg_id}']")
-            if not elems:
-                self.logger.error("ID %s not found in skeleton", seg_id)
-                continue
-            elem = elems[0]
-            utils.set_inner_xml(elem, value)
-        # remove helper attributes before saving
-        for el in root.iter():
-            if "data-dita-seg-id" in el.attrib:
-                del el.attrib["data-dita-seg-id"]
+        self._apply_translations(root, translations)
+        self._remove_seg_ids(root)
         if output_path is None:
             out_base = self.target_dir or os.path.dirname(skeleton_path)
             target_path = os.path.join(out_base, f"{base}.xml")
@@ -191,7 +252,6 @@ class Dita2LLM:
             doctype=tree.docinfo.doctype,
             pretty_print=True,
         )
-        self._last_target_path = target_path
         self.logger.info("Skeleton used: %s", skeleton_path)
         self.logger.info("Wrote integrated file: %s", target_path)
         self.logger.info("End integrate")
@@ -206,6 +266,8 @@ class Dita2LLM:
         return self.validator.validate(src_xml, tgt_xml, skel_dir)
 
     def generate_dummy_translation(self, segments_json_path: str, output_path: str) -> str:
+        """Create a dummy translation JSON file for testing."""
+
         segments_json_path = self._resolve(segments_json_path, self.intermediate_dir)
         output_path = self._resolve(output_path, self.intermediate_dir)
         with open(segments_json_path, "r", encoding="utf-8") as f:
@@ -221,7 +283,7 @@ class Dita2LLM:
             )
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(translations, f, indent=2, ensure_ascii=False)
-        self.logger.info(f"Dummy translation written: {output_path}")
+        self.logger.info("Dummy translation written: %s", output_path)
         return output_path
 
     def integrate_from_simple_xml(self, simple_xml_path: str) -> Tuple[str, ValidationReport]:
@@ -263,63 +325,15 @@ class Dita2LLM:
         parser = etree.XMLParser(remove_blank_text=False)
         simple_tree = etree.parse(simple_xml_path, parser)
 
-        mappings: Dict[str, str] = {}
-        with open(mapping_path, "r", encoding="utf-8") as f:
-            for line in f:
-                if "->" in line:
-                    ph, tag = line.strip().split(" -> ")
-                    mappings[ph] = tag
-
-        # Replace placeholder tags with real tag names and capture seg ids
-        for elem in simple_tree.getroot().iter():
-            tag = elem.tag
-            seg_id = None
-            if "_" in tag:
-                placeholder, seg_id = tag.split("_", 1)
-            else:
-                placeholder = tag
-            elem.tag = mappings.get(placeholder, placeholder)
-            if seg_id:
-                elem.set("data-dita-seg-id", seg_id)
+        mappings = self._load_mappings(mapping_path)
+        self._replace_placeholders(simple_tree, mappings)
 
         skeleton_tree = etree.parse(skeleton_path, parser)
         skeleton_root = skeleton_tree.getroot()
 
-        def copy_attrs(src: etree._Element, dst: etree._Element):
-            for k, v in dst.attrib.items():
-                if k not in src.attrib:
-                    src.set(k, v)
+        self._merge_simple(simple_tree.getroot(), skeleton_root)
 
-        def merge(trans_elem: etree._Element, skel_elem: etree._Element):
-            copy_attrs(trans_elem, skel_elem)
-            skel_elem.text = trans_elem.text
-            used: List[etree._Element] = []
-            for s_child in skel_elem:
-                match = None
-                sid = s_child.get("data-dita-seg-id")
-                if sid:
-                    for c in trans_elem.xpath(f"*[@data-dita-seg-id='{sid}']"):
-                        match = c
-                        break
-                else:
-                    for c in trans_elem:
-                        if c.tag == s_child.tag and c not in used:
-                            match = c
-                            used.append(c)
-                            break
-                if match is not None:
-                    merge(match, s_child)
-                    s_child.tail = match.tail
-
-        for seg_elem in simple_tree.getroot().xpath("//*[@data-dita-seg-id]"):
-            seg_id = seg_elem.get("data-dita-seg-id")
-            match = skeleton_root.xpath(f"//*[@data-dita-seg-id='{seg_id}']")
-            if match:
-                merge(seg_elem, match[0])
-
-        for el in skeleton_root.iter():
-            if "data-dita-seg-id" in el.attrib:
-                del el.attrib["data-dita-seg-id"]
+        self._remove_seg_ids(skeleton_root)
 
         out_base = self.target_dir or base_dir
         target_path = os.path.join(out_base, f"{base}.xml")
@@ -330,7 +344,6 @@ class Dita2LLM:
             doctype=skeleton_tree.docinfo.doctype,
             pretty_print=True,
         )
-        self._last_target_path = target_path
         report = self.validate(source_xml_path, target_path)
         self.logger.info("End integrate from simple XML")
         return target_path, report
