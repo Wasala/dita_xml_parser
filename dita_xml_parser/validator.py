@@ -4,20 +4,23 @@ from __future__ import annotations
 
 import logging
 import os
+from dataclasses import dataclass
 from typing import List
 
 from lxml import etree
 
-import config
 from . import utils
 
 
+@dataclass
 class ValidationReport:
-    """Simple container for validation results."""
+    """Container for validation results."""
 
-    def __init__(self, passed: bool, details: List[str]):
-        self.passed = passed
-        self.details = details
+    passed: bool
+    details: List[str]
+
+    def __repr__(self) -> str:
+        return f"ValidationReport(passed={self.passed}, details={self.details})"
 
 
 class DitaValidator:
@@ -25,6 +28,48 @@ class DitaValidator:
 
     def __init__(self, logger: logging.Logger | None = None):
         self.logger = logger or logging.getLogger(__name__)
+
+    def set_logger(self, logger: logging.Logger) -> None:
+        """Replace the current logger."""
+
+        self.logger = logger
+
+    def _parse_tree(
+        self, xml_path: str, parser: etree.XMLParser
+    ) -> etree._ElementTree | None:
+        """Return parsed tree or ``None`` on error."""
+
+        try:
+            return etree.parse(xml_path, parser)
+        except (OSError, etree.XMLSyntaxError) as exc:  # pragma: no cover - unexpected
+            self.logger.error("Validation parse error: %s", exc)
+            return None
+
+    def _collect_untranslated(
+        self,
+        src_tree: etree._ElementTree,
+        tgt_tree: etree._ElementTree,
+        skeleton_path: str,
+    ) -> List[str]:
+        """Return warnings for untranslated segments using ``skeleton_path``."""
+
+        warnings: List[str] = []
+        if os.path.exists(skeleton_path):
+            skel_tree = etree.parse(skeleton_path, etree.XMLParser(remove_blank_text=False))
+            skel_et = etree.ElementTree(skel_tree.getroot())
+            for seg_elem in skel_tree.xpath("//*[@data-dita-seg-id]"):
+                seg_id = seg_elem.get("data-dita-seg-id")
+                xpath = skel_et.getpath(seg_elem)
+                src_match = src_tree.xpath(xpath)
+                tgt_match = tgt_tree.xpath(xpath)
+                if src_match and tgt_match:
+                    s_inner = utils.get_inner_xml(src_match[0]).strip()
+                    t_inner = utils.get_inner_xml(tgt_match[0]).strip()
+                    if s_inner == t_inner and s_inner:
+                        msg = f"Untranslated segment {seg_id} at {xpath}"
+                        warnings.append(msg)
+                        self.logger.warning(msg)
+        return warnings
 
     def validate(
         self,
@@ -45,12 +90,10 @@ class DitaValidator:
             return ValidationReport(False, [msg])
 
         parser = etree.XMLParser(remove_blank_text=False)
-        try:
-            src_tree = etree.parse(src_xml, parser)
-            tgt_tree = etree.parse(tgt_xml, parser)
-        except Exception as exc:  # pragma: no cover - unexpected parse error
-            self.logger.error("Validation parse error: %s", exc)
-            return ValidationReport(False, [str(exc)])
+        src_tree = self._parse_tree(src_xml, parser)
+        tgt_tree = self._parse_tree(tgt_xml, parser)
+        if src_tree is None or tgt_tree is None:
+            return ValidationReport(False, ["Parse error"])
 
         errors: List[str] = []
         warnings: List[str] = []
@@ -85,21 +128,7 @@ class DitaValidator:
         base = os.path.splitext(os.path.basename(src_xml))[0]
         skel_dir = skeleton_dir or os.path.dirname(tgt_xml)
         skeleton_path = os.path.join(skel_dir, f"{base}.skeleton.xml")
-        if os.path.exists(skeleton_path):
-            skel_tree = etree.parse(skeleton_path, parser)
-            skel_et = etree.ElementTree(skel_tree.getroot())
-            for seg_elem in skel_tree.xpath("//*[@data-dita-seg-id]"):
-                seg_id = seg_elem.get("data-dita-seg-id")
-                xpath = skel_et.getpath(seg_elem)
-                src_match = src_tree.xpath(xpath)
-                tgt_match = tgt_tree.xpath(xpath)
-                if src_match and tgt_match:
-                    s_inner = utils.get_inner_xml(src_match[0]).strip()
-                    t_inner = utils.get_inner_xml(tgt_match[0]).strip()
-                    if s_inner == t_inner and s_inner:
-                        msg = f"Untranslated segment {seg_id} at {xpath}"
-                        warnings.append(msg)
-                        self.logger.warning(msg)
+        warnings.extend(self._collect_untranslated(src_tree, tgt_tree, skeleton_path))
 
         passed = not errors
         for err in errors:
@@ -108,4 +137,3 @@ class DitaValidator:
             self.logger.warning(warn)
         self.logger.info("End validate")
         return ValidationReport(passed, errors + warnings)
-

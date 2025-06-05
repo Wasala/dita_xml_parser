@@ -62,11 +62,9 @@ tr.generate_dummy_translation(
     "sample_topic.translated.json",
 )
 
-# Merge translations back into the skeleton
-tr.integrate("sample_topic.translated.json")
-
-# Validate the result
-report = tr.validate("sample_topic.xml", tr._last_target_path)
+# Merge translations back into the skeleton and validate the result
+target_path = tr.integrate("sample_topic.translated.json")
+report = tr.validate("sample_topic.xml", target_path)
 print("validation", "passed" if report.passed else "failed")
 ```
 
