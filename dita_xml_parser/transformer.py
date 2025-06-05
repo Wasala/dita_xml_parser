@@ -82,6 +82,12 @@ class Dita2LLM:
         self.logger.addHandler(fh)
         return log_path
 
+    def _ensure_log(self, xml_path: str) -> None:
+        """Initialize logging when no file handler is active."""
+
+        if not self.logger.handlers:
+            self._init_log(xml_path)
+
     def _apply_translations(
         self, root: etree._Element, translations: List[dict]
     ) -> None:
@@ -330,6 +336,7 @@ class Dita2LLM:
         """
 
         translation_json_path = self._resolve(translation_json_path, self.intermediate_dir)
+        self._ensure_log(translation_json_path)
         self.logger.info("Start integrate: %s", translation_json_path)
         with open(translation_json_path, "r", encoding="utf-8") as f:
             translations = json.load(f)
@@ -378,6 +385,7 @@ class Dita2LLM:
 
         src_xml = self._resolve(src_xml, self.source_dir)
         tgt_xml = self._resolve(tgt_xml, self.target_dir)
+        self._ensure_log(src_xml)
         skel_dir = self.intermediate_dir or os.path.dirname(tgt_xml)
         return self.validator.validate(src_xml, tgt_xml, skel_dir)
 
@@ -395,6 +403,7 @@ class Dita2LLM:
 
         segments_json_path = self._resolve(segments_json_path, self.intermediate_dir)
         output_path = self._resolve(output_path, self.intermediate_dir)
+        self._ensure_log(segments_json_path)
         with open(segments_json_path, "r", encoding="utf-8") as f:
             segments = json.load(f)
         translations = []
@@ -423,6 +432,7 @@ class Dita2LLM:
         :returns: Tuple of the output XML path and the validation report.
         """
         simple_xml_path = self._resolve(simple_xml_path, self.intermediate_dir)
+        self._ensure_log(simple_xml_path)
         self.logger.info("Start integrate from simple XML: %s", simple_xml_path)
 
         name = os.path.splitext(os.path.basename(simple_xml_path))[0]
