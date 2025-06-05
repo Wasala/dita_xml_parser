@@ -1,13 +1,24 @@
 # DITA XML LLM Transformer
 
-Utilities for preparing DITA/XML documents for translation with large language models. The workflow extracts translatable segments, generates a minimal XML with stable placeholders, and merges translated text back into the original structure.
+This project provides utilities for preparing DITA or generic XML documents for
+translation with large language models. The workflow extracts translatable
+segments, generates a simplified XML containing stable placeholders and merges
+the translated output back into the original structure. Validation helpers ensure
+that no markup is lost in the round trip.
 
-## Setup
+## Installation
 
-Install dependencies and run the tests to verify the environment:
+Clone the repository and install the dependencies. A standard ``requirements``
+file is provided and the project can be installed as a package if desired:
 
 ```bash
 pip install -r requirements.txt
+pip install -e .  # optional, allows ``import dita_xml_parser`` anywhere
+```
+
+Running the tests verifies that everything works as expected:
+
+```bash
 pytest
 ```
 
@@ -23,6 +34,14 @@ dita_xml_parser/
 ```
 
 Example DITA files are provided in `sample_data/` and unit tests live in `tests/`.
+
+## Features
+
+- Extracts translatable text segments while preserving XML markup
+- Generates minimal placeholder XML for translation tools
+- Merges translated content back into the original file
+- Validates the output to ensure structural fidelity
+- Supports configuration via a small ``TOML`` file
 
 ## Basic usage
 
@@ -51,7 +70,28 @@ report = tr.validate("sample_topic.xml", tr._last_target_path)
 print("validation", "passed" if report.passed else "failed")
 ```
 
+## Development
+
+The repository ships with unit tests and a ``pylint`` configuration. Run the
+following commands to ensure code quality:
+
+```bash
+pytest       # run unit tests
+pylint dita_xml_parser
+```
+
 For simple workflows you can translate the generated `*.minimal.xml` and call `integrate_from_simple_xml` to reconstruct the original document.
+
+### Configuration
+
+Runtime behaviour can be tweaked using a small ``TOML`` file. Set the
+``DITA_PARSER_CONFIG`` environment variable to point at your configuration file
+or place ``config.toml`` next to ``config.py``. The following keys are
+supported:
+
+- ``INLINE_TAGS``: list of inline element names
+- ``ID_LENGTH``: length of generated segmentation IDs
+- ``LOG_LEVEL``: default logger level
 
 ## Working with absolute paths
 
