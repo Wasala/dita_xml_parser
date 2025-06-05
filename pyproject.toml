@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dita-xml-parser"
+version = "0.1.0"
+description = "Utilities for preparing DITA XML files for translation"
+authors = [{name = "Example"}]
+dependencies = ["lxml", "pytoml"]
+
+[tool.setuptools]
+packages = ["dita_xml_parser"]
