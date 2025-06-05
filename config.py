@@ -1,10 +1,11 @@
-"""Configuration for ``dita_xml_parser``.
+"""Library configuration.
 
-Settings can be customized via a ``TOML`` file. If the ``DITA_PARSER_CONFIG``
-environment variable points to an existing file, values are read from there.
-Otherwise ``config.toml`` next to this module is used when present. The default
-constants match the previous hard coded behavior so existing code continues to
-work without configuration.
+The parser is intentionally configurable via an external ``TOML`` file so
+command line tools and interactive notebooks can alter defaults without
+patching the code.  By reading ``DITA_PARSER_CONFIG`` first, deployments may
+point to a central config location while still falling back to a project
+``config.toml`` when the environment variable is unset.  The shipped constants
+mirror the library's historic defaults for backward compatibility.
 """
 
 from __future__ import annotations

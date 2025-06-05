@@ -1,4 +1,10 @@
-"""Validation utilities for DITA XML files."""
+"""Check translated XML files against the source.
+
+Validation is kept separate from transformation so that alternate translation
+pipelines can still reuse the logic.  Only a lightweight dependency on
+:mod:`lxml` is required which keeps the validator usable in restricted
+environments.
+"""
 
 from __future__ import annotations
 
@@ -14,7 +20,13 @@ from . import utils
 
 @dataclass
 class ValidationReport:
-    """Container for validation results."""
+    """Simple result object for :class:`DitaValidator`.
+
+    Storing the pass/fail boolean along with detail messages keeps the
+    interface minimal while still allowing callers to inspect warnings and
+    errors.  The dataclass representation is easy to serialize for logging or
+    further automated analysis.
+    """
 
     passed: bool
     details: List[str]
@@ -24,20 +36,44 @@ class ValidationReport:
 
 
 class DitaValidator:
-    """Validate translated XML against the source structure."""
+    """Validate translated XML against the source structure.
+
+    The validator focuses purely on structural fidelity: tags, attributes and
+    ordering must remain unchanged compared to the source skeleton.  Content
+    differences are ignored except when checking for untranslated segments.  By
+    isolating validation in its own class, the :class:`Dita2LLM` workflow can be
+    reused with custom validators or extended rules.
+    """
 
     def __init__(self, logger: logging.Logger | None = None):
         self.logger = logger or logging.getLogger(__name__)
 
     def set_logger(self, logger: logging.Logger) -> None:
-        """Replace the current logger."""
+        """Swap out the logger used for reporting.
+
+        Injecting a custom logger allows host applications to integrate the
+        validator with their own logging setup or testing harness.  No return
+        value is provided to keep the call site simple.
+
+        :param logger: The logger instance to use.
+        """
 
         self.logger = logger
 
     def _parse_tree(
         self, xml_path: str, parser: etree.XMLParser
     ) -> etree._ElementTree | None:
-        """Return parsed tree or ``None`` on error."""
+        """Parse an XML file with graceful error handling.
+
+        The validator reuses this helper for both source and target documents
+        so that any syntax issues are reported consistently.  Returning ``None``
+        instead of raising allows the caller to produce a single validation
+        report even when one of the files fails to parse.
+
+        :param xml_path: Path to the XML file on disk.
+        :param parser: Configured XML parser instance.
+        :returns: The parsed element tree or ``None`` on failure.
+        """
 
         try:
             return etree.parse(xml_path, parser)
@@ -51,7 +87,18 @@ class DitaValidator:
         tgt_tree: etree._ElementTree,
         skeleton_path: str,
     ) -> List[str]:
-        """Return warnings for untranslated segments using ``skeleton_path``."""
+        """Detect segments that were not translated.
+
+        By comparing the inner XML of source and target at locations identified
+        via the skeleton, this helper can flag untranslated text while ignoring
+        structural differences.  The check is optional when no skeleton is
+        available and results in a list of warning strings rather than errors.
+
+        :param src_tree: Parsed source XML tree.
+        :param tgt_tree: Parsed translated XML tree.
+        :param skeleton_path: Path to the skeleton XML produced during parsing.
+        :returns: A list of human readable warning messages.
+        """
 
         warnings: List[str] = []
         if os.path.exists(skeleton_path):
@@ -77,7 +124,20 @@ class DitaValidator:
         tgt_xml: str,
         skeleton_dir: str | None = None,
     ) -> ValidationReport:
-        """Validate that ``tgt_xml`` matches ``src_xml`` structure."""
+        """Check structural fidelity of a translated file.
+
+        The method loads both source and target XML using the same parser to
+        eliminate differences from whitespace handling.  It then walks the tree
+        comparing tag names and attributes, reporting mismatches as errors.
+        When a skeleton is available, untranslated segments are flagged as
+        warnings.  The result is returned as a :class:`ValidationReport` rather
+        than raising so that callers can decide how strict to be.
+
+        :param src_xml: Path to the original XML document.
+        :param tgt_xml: Path to the translated XML document.
+        :param skeleton_dir: Directory containing the skeleton from ``parse``.
+        :returns: Object with ``passed`` boolean and message list.
+        """
         self.logger.info("Start validate: %s vs %s", src_xml, tgt_xml)
 
         if not os.path.exists(src_xml):
