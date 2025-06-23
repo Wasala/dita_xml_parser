@@ -38,6 +38,16 @@ INLINE_TAGS = {
     "code",
 }
 
+# Tags that should be preserved in the source language and not exposed to
+# translation.  The content of these elements is replaced with a ``<dnt>``
+# placeholder during parsing and later restored using an ID based mapping.
+DO_NOT_TRANSLATE = {
+    "uicontrol",
+    "menucascade",
+    "cite",
+    "ph",
+}
+
 # Each translatable container gets a hex id of this length. Twelve digits give
 # over a trillion possibilities which is enough for temporary identifiers.
 ID_LENGTH: int = 12
@@ -47,5 +57,6 @@ LOG_LEVEL: str = "INFO"
 
 # Override with TOML values if provided
 INLINE_TAGS = set(_CONF.get("INLINE_TAGS", INLINE_TAGS))
+DO_NOT_TRANSLATE = set(_CONF.get("DO_NOT_TRANSLATE", DO_NOT_TRANSLATE))
 ID_LENGTH = int(_CONF.get("ID_LENGTH", ID_LENGTH))
 LOG_LEVEL = _CONF.get("LOG_LEVEL", LOG_LEVEL)
