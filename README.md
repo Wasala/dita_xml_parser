@@ -44,6 +44,7 @@ Example DITA files are provided in `sample_data/` and unit tests live in `tests/
 - Generates dummy translations for testing
 - Validates the output to ensure structural fidelity
 - Supports configuration and language selection via a small ``TOML`` file
+- Allows exclusion of tags that must remain in the source language
 
 ## Basic usage
 
@@ -124,6 +125,11 @@ target_path, report = tr.integrate_from_simple_xml(
 print("validation", "passed" if report.passed else "failed")
 ```
 
+When ``DO_NOT_TRANSLATE`` tags are configured, `parse()` also creates a
+`*.dnt.json` file mapping the placeholder IDs to the original element name and
+text.  All ``<dnt>`` placeholders are restored automatically during
+integration so that their content remains in the source language.
+
 The overall workflow therefore looks like this:
 
 1. `parse()` → creates `*.skeleton.xml`, `*.<src>_segments.json`, `*.minimal.xml`
@@ -153,6 +159,7 @@ or place ``config.toml`` next to ``config.py``. The following keys are
 supported:
 
 - ``INLINE_TAGS``: list of inline element names
+- ``DO_NOT_TRANSLATE``: tags to replace with ``<dnt>`` placeholders
 - ``ID_LENGTH``: length of generated segmentation IDs
 - ``LOG_LEVEL``: default logger level
 
