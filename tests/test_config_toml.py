@@ -8,6 +8,7 @@ def test_config_from_toml(tmp_path, monkeypatch):
 INLINE_TAGS = ["b", "i", "u"]
 ID_LENGTH = 8
 LOG_LEVEL = "DEBUG"
+DO_NOT_TRANSLATE = ["foo", "bar"]
 """)
     monkeypatch.setenv("DITA_PARSER_CONFIG", str(cfg))
     import config
@@ -15,5 +16,6 @@ LOG_LEVEL = "DEBUG"
     assert config.ID_LENGTH == 8
     assert config.LOG_LEVEL == "DEBUG"
     assert "b" in config.INLINE_TAGS
+    assert "foo" in config.DO_NOT_TRANSLATE
     monkeypatch.delenv("DITA_PARSER_CONFIG")
     importlib.reload(config)

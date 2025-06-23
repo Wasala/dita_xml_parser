@@ -88,6 +88,29 @@ class Dita2LLM:
         if not self.logger.handlers:
             self._init_log(xml_path)
 
+    def _extract_dnt(self, root: etree._Element, mapping_path: str) -> None:
+        """Replace configured elements with ``<dnt>`` placeholders."""
+
+        mappings = {}
+        targets = [e for e in root.iter() if e.tag in config.DO_NOT_TRANSLATE]
+        for elem in targets:
+            dnt_id = utils.generate_id()
+            content = utils.get_inner_xml(elem)
+            new = etree.Element("dnt")
+            new.set("id", dnt_id)
+            new.set("element", elem.tag)
+            new.set("content", content)
+            new.tail = elem.tail
+            parent = elem.getparent()
+            if parent is not None:
+                parent.replace(elem, new)
+            mappings[dnt_id] = {"element": elem.tag, "content": content}
+        if mappings:
+            with open(mapping_path, "w", encoding="utf-8") as f:
+                json.dump(mappings, f, indent=2, ensure_ascii=False)
+            self.logger.info("DNT mapping path: %s", mapping_path)
+            self.logger.info("DNT elements replaced: %s", len(mappings))
+
     def _apply_translations(
         self, root: etree._Element, translations: List[dict]
     ) -> None:
@@ -130,6 +153,29 @@ class Dita2LLM:
 
         for el in root.xpath("//*[@data-dita-seg-id]"):
             del el.attrib["data-dita-seg-id"]
+
+    def _restore_dnt(self, root: etree._Element, mapping_path: str) -> None:
+        """Replace ``<dnt>`` placeholders with the original elements."""
+
+        if not os.path.exists(mapping_path):
+            return
+        with open(mapping_path, "r", encoding="utf-8") as f:
+            mapping = json.load(f)
+        for dnt in root.xpath("//dnt[@id]"):
+            dnt_id = dnt.get("id")
+            orig = mapping.get(dnt_id, None)
+            if orig is None:
+                elem_name = dnt.get("element")
+                content = dnt.get("content", "")
+            else:
+                elem_name = orig.get("element")
+                content = orig.get("content", "")
+            new_el = etree.Element(elem_name)
+            utils.set_inner_xml(new_el, content)
+            new_el.tail = dnt.tail
+            parent = dnt.getparent()
+            if parent is not None:
+                parent.replace(dnt, new_el)
 
     def _load_mappings(self, path: str) -> Dict[str, str]:
         """Read the placeholder-to-tag mapping from disk.
@@ -281,6 +327,10 @@ class Dita2LLM:
         parser = etree.XMLParser(remove_blank_text=False)
         tree = etree.parse(xml_path, parser)
         root = tree.getroot()
+        base = os.path.splitext(os.path.basename(xml_path))[0]
+        base_dir = self.intermediate_dir or os.path.dirname(skeleton_path or xml_path) or "."
+        dnt_map_path = os.path.join(base_dir, f"{base}.dnt.json")
+        self._extract_dnt(root, dnt_map_path)
         ids: List[Tuple[etree._Element, str]] = []
         count = 0
         # Only iterate over element nodes to avoid comments and processing
@@ -294,8 +344,6 @@ class Dita2LLM:
                     seg_id = elem.get("data-dita-seg-id")
                 ids.append((elem, seg_id))
                 count += 1
-        base = os.path.splitext(os.path.basename(xml_path))[0]
-        base_dir = self.intermediate_dir or os.path.dirname(skeleton_path or xml_path) or "."
         if skeleton_path is None:
             skeleton_path = os.path.join(base_dir, f"{base}.skeleton.xml")
         tree.write(
@@ -346,17 +394,27 @@ class Dita2LLM:
             translations = [translations]
         name = os.path.splitext(os.path.basename(translation_json_path))[0]
         suffix = f".{self.target_lang}_translated"
-        base = name[:-len(suffix)] if name.endswith(suffix) else name.split(".")[0]
+        json_base = name[:-len(suffix)] if name.endswith(suffix) else name.split(".")[0]
         if skeleton_path is None:
             skel_base = self.intermediate_dir or os.path.dirname(translation_json_path)
-            skeleton_path = os.path.join(skel_base, f"{base}.skeleton.xml")
+            skeleton_path = os.path.join(skel_base, f"{json_base}.skeleton.xml")
         else:
             skeleton_path = self._resolve(skeleton_path, self.intermediate_dir)
+        base = os.path.splitext(os.path.basename(skeleton_path))[0]
+        if base.endswith('.skeleton'):
+            base = base[:-9]
         parser = etree.XMLParser(remove_blank_text=False)
         tree = etree.parse(skeleton_path, parser)
         root = tree.getroot()
         self._apply_translations(root, translations)
         self._remove_seg_ids(root)
+        dnt_dir = os.path.dirname(skeleton_path)
+        dnt_map_path = os.path.join(dnt_dir, f"{base}.dnt.json")
+        if not os.path.exists(dnt_map_path):
+            cand = [f for f in os.listdir(dnt_dir) if f.endswith('.dnt.json')]
+            if len(cand) == 1:
+                dnt_map_path = os.path.join(dnt_dir, cand[0])
+        self._restore_dnt(root, dnt_map_path)
         if output_path is None:
             out_base = self.target_dir or os.path.dirname(skeleton_path)
             target_path = os.path.join(out_base, f"{base}.xml")
@@ -461,6 +519,12 @@ class Dita2LLM:
         self._merge_simple(simple_tree.getroot(), skeleton_root)
 
         self._remove_seg_ids(skeleton_root)
+        dnt_map_path = os.path.join(base_dir, f"{base}.dnt.json")
+        if not os.path.exists(dnt_map_path):
+            cand = [f for f in os.listdir(base_dir) if f.endswith('.dnt.json')]
+            if len(cand) == 1:
+                dnt_map_path = os.path.join(base_dir, cand[0])
+        self._restore_dnt(skeleton_root, dnt_map_path)
 
         out_base = self.target_dir or base_dir
         target_path = os.path.join(out_base, f"{base}.xml")

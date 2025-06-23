@@ -28,7 +28,9 @@ def build_translated_simple(minimal_path, mapping_path, reorder=True, remove_b=F
             ph, tag = line.strip().split(' -> ')
             mappings[ph] = tag
 
-    ph_ph = next(k for k, v in mappings.items() if v == 'ph')
+    ph_ph = next((k for k, v in mappings.items() if v == 'ph'), None)
+    if ph_ph is None:
+        ph_ph = next(k for k, v in mappings.items() if v == 'dnt')
     ph_sub = next(k for k, v in mappings.items() if v == 'sub')
     ph_p = next(k for k, v in mappings.items() if v == 'p')
     ph_b = next(k for k, v in mappings.items() if v == 'b')
