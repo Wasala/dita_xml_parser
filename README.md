@@ -39,9 +39,11 @@ Example DITA files are provided in `sample_data/` and unit tests live in `tests/
 
 - Extracts translatable text segments while preserving XML markup
 - Generates minimal placeholder XML for translation tools
-- Merges translated content back into the original file
+- Integrates JSON translations back into the original file
+- Integrates translated minimal XML via ``integrate_from_simple_xml()``
+- Generates dummy translations for testing
 - Validates the output to ensure structural fidelity
-- Supports configuration via a small ``TOML`` file
+- Supports configuration and language selection via a small ``TOML`` file
 
 ## Basic usage
 
@@ -52,6 +54,8 @@ tr = Dita2LLM(
     source_dir="sample_data",
     intermediate_dir="intermediate",
     target_dir="translated",
+    # default languages are en-US -> de-DE
+    languages=("en-US", "de-DE"),
 )
 
 segments, skeleton = tr.parse("sample_topic.xml")  # filename only
@@ -67,6 +71,22 @@ target_path = tr.integrate("sample_topic.translated.json")
 report = tr.validate("sample_topic.xml", target_path)
 print("validation", "passed" if report.passed else "failed")
 ```
+
+### Standalone validation
+
+The `DitaValidator` class can be used independently when translations are
+produced by other tools:
+
+```python
+from dita_xml_parser import DitaValidator
+
+validator = DitaValidator()
+report = validator.validate("source.xml", "translated.xml", "intermediate")
+print(report)
+```
+
+The ``languages`` argument selects the source and target locales. Use, for
+example, ``languages=("en-US", "fr-FR")`` to produce French output.
 
 ### File naming conventions
 
@@ -95,6 +115,14 @@ When translating the minimal XML directly, edit
 `integrate_from_simple_xml()` looks for the accompanying
 `sample_topic.tag_mappings.txt` and `sample_topic.skeleton.xml` files in the
 same directory and produces the final `sample_topic.xml` in the target folder.
+
+```python
+# After translating the minimal XML
+target_path, report = tr.integrate_from_simple_xml(
+    "intermediate/sample_topic.minimal.translated.xml"
+)
+print("validation", "passed" if report.passed else "failed")
+```
 
 The overall workflow therefore looks like this:
 
