@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DITA Reference//EN" "reference.dtd">
+<reference id="GUID-643908C7-E574-4144-99EA-5C39BF79E0D7" xml:lang="de">
+    <title id="GUID-1B84301C-E9A3-44E8-81FE-3310F4BFEE83">Insurance Manager</title>
+    <shortdesc>The <uicontrol>Insurance Control</uicontrol> option enables you to select policy options and diagnostic utilities.</shortdesc>
+    <refbody>
+        <section>
+            To enter <uicontrol>Insurance Control</uicontrol>, log into the insurance portal and navigate to the policy management section.
+            <table frame="all">
+                <title><uicontrol>Insurance Control</uicontrol> details</title>
+                <desc>This table provides the details of the options available on the <uicontrol>Insurance Control</uicontrol> screen.</desc>
+                <tgroup cols="2">
+                    <colspec colnum="1" colname="col1" colwidth="1.00*"/>
+                    <colspec colnum="2" colname="col2" colwidth="1.76*"/>
+                    <thead>
+                        <row>
+                            <entry colname="col1">Option</entry>
+                            <entry colname="col2">Description</entry>
+                        </row>
+                    </thead>
+                    <tbody>
+                        <row>
+                            <entry colname="col1"><uicontrol>Insurance Control</uicontrol></entry>
+                            <entry colname="col2">The system attempts to process policies starting with the first item in the policy order. If the attempt fails, the system continues with the next item in the policy order until the process is successful or no more policy options are found.</entry>
+                        </row>
+                        <row>
+                            <entry colname="col1"><uicontrol>Insurance Control</uicontrol></entry>
+                            <entry colname="col2">Enables you to access the policy menu, where you can select a one-time policy option to process.</entry>
+                        </row>
+                        <row>
+                            <entry colname="col1"><uicontrol>Insurance Control</uicontrol></entry>
+                            <entry colname="col2">Enables you to access <uicontrol>Insurance Control</uicontrol>.</entry>
+                        </row>
+                        <row>
+                            <entry colname="col1"><uicontrol>Insurance Control</uicontrol></entry>
+                            <entry colname="col2">Enables you to launch the <uicontrol>Insurance Control</uicontrol> menu such as Launch Diagnostics, Policy update File Explorer, Reboot System.</entry>
+                        </row>
+                    </tbody>
+                </tgroup>
+            </table>
+        </section>
+    </refbody>
+</reference>
