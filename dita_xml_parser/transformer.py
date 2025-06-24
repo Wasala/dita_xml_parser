@@ -157,19 +157,21 @@ class Dita2LLM:
     def _restore_dnt(self, root: etree._Element, mapping_path: str) -> None:
         """Replace ``<dnt>`` placeholders with the original elements."""
 
-        if not os.path.exists(mapping_path):
-            return
-        with open(mapping_path, "r", encoding="utf-8") as f:
-            mapping = json.load(f)
-        for dnt in root.xpath("//dnt[@id]"):
+        mapping = {}
+        if os.path.exists(mapping_path):
+            with open(mapping_path, "r", encoding="utf-8") as f:
+                mapping = json.load(f)
+        for dnt in root.xpath("//dnt"):
             dnt_id = dnt.get("id")
-            orig = mapping.get(dnt_id, None)
+            orig = mapping.get(dnt_id, None) if dnt_id else None
             if orig is None:
                 elem_name = dnt.get("element")
                 content = dnt.get("content", "")
             else:
                 elem_name = orig.get("element")
                 content = orig.get("content", "")
+            if not elem_name:
+                continue
             new_el = etree.Element(elem_name)
             utils.set_inner_xml(new_el, content)
             new_el.tail = dnt.tail
@@ -420,9 +422,10 @@ class Dita2LLM:
             target_path = os.path.join(out_base, f"{base}.xml")
         else:
             target_path = self._resolve(output_path, self.target_dir)
+        encoding = self._detect_encoding(skeleton_path)
         tree.write(
             target_path,
-            encoding="utf-8",
+            encoding=encoding,
             xml_declaration=True,
             doctype=tree.docinfo.doctype,
             pretty_print=True,
@@ -528,9 +531,10 @@ class Dita2LLM:
 
         out_base = self.target_dir or base_dir
         target_path = os.path.join(out_base, f"{base}.xml")
+        encoding = self._detect_encoding(skeleton_path)
         skeleton_tree.write(
             target_path,
-            encoding="utf-8",
+            encoding=encoding,
             xml_declaration=True,
             doctype=skeleton_tree.docinfo.doctype,
             pretty_print=True,
