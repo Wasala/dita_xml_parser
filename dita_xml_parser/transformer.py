@@ -161,6 +161,7 @@ class Dita2LLM:
         if os.path.exists(mapping_path):
             with open(mapping_path, "r", encoding="utf-8") as f:
                 mapping = json.load(f)
+
         for dnt in root.xpath("//dnt"):
             dnt_id = dnt.get("id")
             orig = mapping.get(dnt_id, None) if dnt_id else None
