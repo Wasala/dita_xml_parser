@@ -105,3 +105,42 @@ def test_dnt_restored_missing_id_in_mapping(tmp_path):
     final = etree.parse(str(target))
     assert final.xpath("//uicontrol")[0].text == "OK"
 
+
+def test_dnt_restored_without_id(tmp_path):
+    tr = make_transformer(tmp_path)
+    xml_path = create_xml(tmp_path)
+    tr.parse(str(xml_path))
+    seg_path = tmp_path / "intermediate" / "dnt.en-US_segments.json"
+    out_path = tmp_path / "intermediate" / "dnt.translated.json"
+    tr.generate_dummy_translation(str(seg_path), str(out_path))
+    skeleton = tmp_path / "intermediate" / "dnt.skeleton.xml"
+    tree = etree.parse(str(skeleton))
+    dnt = tree.xpath("//dnt")[0]
+    if "id" in dnt.attrib:
+        del dnt.attrib["id"]
+    tree.write(str(skeleton), encoding="utf-8")
+    target = tr.integrate(str(out_path))
+    final = etree.parse(str(target))
+    assert final.xpath("//uicontrol")[0].text == "OK"
+
+
+def test_dnt_restored_without_id_or_mapping(tmp_path):
+    tr = make_transformer(tmp_path)
+    xml_path = create_xml(tmp_path)
+    tr.parse(str(xml_path))
+    seg_path = tmp_path / "intermediate" / "dnt.en-US_segments.json"
+    out_path = tmp_path / "intermediate" / "dnt.translated.json"
+    tr.generate_dummy_translation(str(seg_path), str(out_path))
+    skeleton = tmp_path / "intermediate" / "dnt.skeleton.xml"
+    tree = etree.parse(str(skeleton))
+    dnt = tree.xpath("//dnt")[0]
+    if "id" in dnt.attrib:
+        del dnt.attrib["id"]
+    tree.write(str(skeleton), encoding="utf-8")
+    mapping = tmp_path / "intermediate" / "dnt.dnt.json"
+    if mapping.exists():
+        mapping.unlink()
+    target = tr.integrate(str(out_path))
+    final = etree.parse(str(target))
+    assert final.xpath("//uicontrol")[0].text == "OK"
+

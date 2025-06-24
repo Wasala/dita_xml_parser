@@ -161,15 +161,17 @@ class Dita2LLM:
         if os.path.exists(mapping_path):
             with open(mapping_path, "r", encoding="utf-8") as f:
                 mapping = json.load(f)
-        for dnt in root.xpath("//dnt[@id]"):
+        for dnt in root.xpath("//dnt"):
             dnt_id = dnt.get("id")
-            orig = mapping.get(dnt_id, None)
+            orig = mapping.get(dnt_id, None) if dnt_id else None
             if orig is None:
                 elem_name = dnt.get("element")
                 content = dnt.get("content", "")
             else:
                 elem_name = orig.get("element")
                 content = orig.get("content", "")
+            if not elem_name:
+                continue
             new_el = etree.Element(elem_name)
             utils.set_inner_xml(new_el, content)
             new_el.tail = dnt.tail
