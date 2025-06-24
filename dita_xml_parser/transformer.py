@@ -157,10 +157,10 @@ class Dita2LLM:
     def _restore_dnt(self, root: etree._Element, mapping_path: str) -> None:
         """Replace ``<dnt>`` placeholders with the original elements."""
 
-        if not os.path.exists(mapping_path):
-            return
-        with open(mapping_path, "r", encoding="utf-8") as f:
-            mapping = json.load(f)
+        mapping = {}
+        if os.path.exists(mapping_path):
+            with open(mapping_path, "r", encoding="utf-8") as f:
+                mapping = json.load(f)
         for dnt in root.xpath("//dnt[@id]"):
             dnt_id = dnt.get("id")
             orig = mapping.get(dnt_id, None)
